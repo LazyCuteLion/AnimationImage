@@ -1,0 +1,83 @@
+<Window x:Class="AnimationImage.Avalonia.Demo.MainWindow"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ani="using:AnimationImage.Avalonia"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        Title="AnimationImage.Avalonia.Demo"
+        d:DesignHeight="450"
+        d:DesignWidth="800"
+        mc:Ignorable="d">
+    <Grid Background="Green">
+        <Image x:Name="view"
+               ani:AnimationBehavior.AutoStart="True"
+               ani:AnimationBehavior.LoopCount="-1"
+               RenderOptions.BitmapInterpolationMode="HighQuality"
+               Stretch="Uniform" />
+        <!--
+        <Rectangle Width="100" Height="100" 
+                   HorizontalAlignment="Right" 
+                   VerticalAlignment="Top"
+                   ani:AnimationBehavior.AutoStart="True"
+                   ani:AnimationBehavior.LoopCount="-1"
+                   Fill="{ani:AnimatableBitmap '[path]'}"/>
+       -->
+        <TextBlock Margin="10,20"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Top"
+                   x:DataType="ani:AnimatableBitmap"
+                   DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
+                   Text="{Binding TPS,StringFormat={}{0:F1}}" />
+        <TextBlock Margin="10"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Top"
+                   x:DataType="ani:AnimatableBitmap"
+                   DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
+                   Text="{Binding Metadata}"
+                   TextWrapping="Wrap" />
+
+        <StackPanel Margin="30" VerticalAlignment="Bottom">
+                <Grid MinWidth="300">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="50" />
+                    </Grid.ColumnDefinitions>
+                   
+                    <Slider LargeChange="1"
+                            x:DataType="ani:AnimatableBitmap"
+                            DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
+                            Maximum="{Binding Metadata.Duration}"
+                            Minimum="0"
+                            SmallChange="0.0001"
+                            Value="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimationTime)}" />
+                   
+                    <TextBlock Grid.Column="1"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Center"
+                               Text="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimationTime),StringFormat={}{0:F1}}" />
+                </Grid>
+            </StackPanel>
+
+        <StackPanel HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Orientation="Horizontal"
+                    DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
+                    x:DataType="ani:AnimatableBitmap">
+            <Button Margin="10"
+                    Click="Button_Click"
+                    Content="Open" />
+            <Button Margin="10"
+                    Content="Play" 
+                    Command="{Binding BeginCommand,Mode=OneTime}"/>
+
+            <Button Margin="10"
+                    Content="Pause" 
+                    Command="{Binding PauseCommand,Mode=OneTime}"/>
+
+            <Button Margin="10"
+                    Content="Stop" 
+                    Command="{Binding StopCommand,Mode=OneTime}"/>
+        </StackPanel>
+
+    </Grid>
+</Window>
