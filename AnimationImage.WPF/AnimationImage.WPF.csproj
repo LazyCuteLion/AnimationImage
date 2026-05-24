@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFrameworks>net6.0-windows;net8.0-windows</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <DefineConstants>WPF</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="3.119.2" />
+    <PackageReference Include="SkiaSharp.Skottie" Version="3.119.2" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PackageId>AnimationImage.WPF</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>LazySheeeep</Authors>
+    <Description>
+      基于 SkiaSharp 的 WPF 极简动图播放方案。
+      支持播放 Lottie、GIF、WebP 格式。
+      更高的帧率、更佳的性能、更少的内存占用。
+    </Description>
+    <PackageTags>wpf;skia;lottie;gif;webp;animation</PackageTags>
+    <RepositoryUrl>https://github.com/LazyCuteLion/AnimationImage</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+</Project>
