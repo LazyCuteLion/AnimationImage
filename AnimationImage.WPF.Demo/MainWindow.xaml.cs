@@ -30,12 +30,14 @@ namespace AnimationImage.WPF.Demo
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new OpenFileDialog();
-            if (dialog.ShowDialog() == true)
-            {
-                var s = AnimatableBitmapFactory.Default.Create(new Uri(dialog.FileName));
-                AnimationBehavior.SetAnimatableBitmap(img, s);
-            }
+            var s = AnimatableBitmapFactory.Default.Create(new Uri("https://cdn.pixabay.com/animation/2023/11/09/03/05/03-05-45-320_512.gif"));
+            AnimationBehavior.SetAnimatableBitmap(img, s);
+            //var dialog = new OpenFileDialog();
+            //if (dialog.ShowDialog() == true)
+            //{
+            //    var s = AnimatableBitmapFactory.Default.Create(new Uri(dialog.FileName));
+            //    AnimationBehavior.SetAnimatableBitmap(img, s);
+            //}
         }
 
         private void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

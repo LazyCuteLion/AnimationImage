@@ -11,6 +11,7 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -83,10 +84,41 @@ namespace AnimationImage.Avalonia
 
         public AnimatableBitmap(Uri source)
         {
-            Stream = File.OpenRead(source.LocalPath);
+            if (source.Scheme == Uri.UriSchemeHttp || source.Scheme == Uri.UriSchemeHttps)
+            {
+                using var client = new HttpClient();
+                using var rsp = client.GetAsync(source).Result;
+                if (rsp?.IsSuccessStatusCode == true)
+                {
+                    Stream = new MemoryStream();
+                    rsp.Content.CopyToAsync(Stream).Wait();
+                    Stream.Position = 0;
+                    //Stream = rsp.Content.ReadAsStream();//rsp释放后，Stream也同样被释放了，所以得copy到内存
+                }
+            }
+            else if (source.Scheme == "avares")
+            {
+                Stream = AssetLoader.Open(source);
+            }
+            else if (source.IsFile)
+            {
+                Stream = File.OpenRead(source.LocalPath);
+            }
+
+            if (Stream == null)
+            {
+                throw new IOException($"读取资源失败：{source}");
+            }
+
             this.BeginCommand = new RelayCommand(this.BeginAnimation, () => this.IsAnimatable);
             this.PauseCommand = new RelayCommand(this.PauseAnimation);
             this.StopCommand = new RelayCommand(this.StopAnimation);
+
+            if (EnableTPS)
+            {
+                TPSwatcher = Stopwatch.StartNew();
+                TPSCount = 0;
+            }
         }
 
         public virtual void AttachTarget(Control target)
@@ -235,8 +267,6 @@ namespace AnimationImage.Avalonia
 
             if (EnableTPS)
             {
-                TPSwatcher ??= Stopwatch.StartNew();
-
                 TPSCount++;
                 if (TPSwatcher.ElapsedMilliseconds >= 1000)
                 {

@@ -7,7 +7,10 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
+using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -81,15 +84,43 @@ namespace AnimationImage.WPF
 
         public AnimatableBitmap(Uri source)
         {
-            Stream = File.OpenRead(source.LocalPath);
+            if (source.Scheme == Uri.UriSchemeHttp || source.Scheme == Uri.UriSchemeHttps)
+            {
+                using var client = new HttpClient();
+                using var rsp = client.GetAsync(source).Result;
+                if (rsp?.IsSuccessStatusCode == true)
+                {
+                    Stream = new MemoryStream();
+                    rsp.Content.CopyToAsync(Stream).Wait();
+                    Stream.Position = 0;
+                    //Stream = rsp.Content.ReadAsStream();//rsp释放后，Stream也同样被释放了，所以得copy到内存
+                }
+            }
+            else if (source.Scheme == "pack")
+            {
+                Stream = Application.GetResourceStream(source)?.Stream
+                      ?? Application.GetContentStream(source)?.Stream
+                      ?? Application.GetRemoteStream(source)?.Stream;
+            }
+            else if (source.IsFile)
+            {
+                Stream = File.OpenRead(source.LocalPath);
+            }
+
+            if (Stream == null)
+            {
+                throw new IOException($"读取资源失败：{source}");
+            }
+
+            this.BeginCommand = new RelayCommand(this.BeginAnimation, () => IsAnimatable);
+            this.PauseCommand = new RelayCommand(this.PauseAnimation, () => State == AnimationState.Playing);
+            this.StopCommand = new RelayCommand(this.StopAnimation, () => Target != null);
+
             if (EnableTPS)
             {
                 TPSwatcher = Stopwatch.StartNew();
                 TPSCount = 0;
             }
-            this.BeginCommand = new RelayCommand(this.BeginAnimation, () => IsAnimatable);
-            this.PauseCommand = new RelayCommand(this.PauseAnimation, () => State == AnimationState.Playing);
-            this.StopCommand = new RelayCommand(this.StopAnimation, () => Target != null);
         }
 
         public virtual async void AttachTarget(FrameworkElement target)
