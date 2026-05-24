@@ -41,7 +41,19 @@ namespace AnimationImage.Avalonia
             }
         }
 
-        public AnimationState State { get; protected set; } = AnimationState.None;
+        private AnimationState _state = AnimationState.None;
+        public AnimationState State
+        {
+            get => _state;
+            protected set
+            {
+                if (_state != value)
+                {
+                    _state = value;
+                    this.RasiePropertyChanged();
+                }
+            }
+        }
 
         public Metadata Metadata { get; protected set; }
 
@@ -73,7 +85,7 @@ namespace AnimationImage.Avalonia
         {
             Stream = File.OpenRead(source.LocalPath);
             this.BeginCommand = new RelayCommand(this.BeginAnimation, () => this.IsAnimatable);
-            this.PauseCommand = new RelayCommand(this.PauseAnimation, () => State == AnimationState.Playing);
+            this.PauseCommand = new RelayCommand(this.PauseAnimation);
             this.StopCommand = new RelayCommand(this.StopAnimation);
         }
 
