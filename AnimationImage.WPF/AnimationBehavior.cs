@@ -78,7 +78,7 @@ namespace AnimationImage.WPF
             obj.SetValue(AutoStartProperty, value);
         }
         public static readonly DependencyProperty AutoStartProperty =
-            DependencyProperty.RegisterAttached("AutoStart", typeof(bool), typeof(AnimationBehavior), new PropertyMetadata(false, (s, e) =>
+            DependencyProperty.RegisterAttached("AutoStart", typeof(bool), typeof(AnimationBehavior), new PropertyMetadata(true, (s, e) =>
             {
                 if (GetAnimatableBitmap(s) is AnimatableBitmap b)
                 {

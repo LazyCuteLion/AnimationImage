@@ -21,7 +21,7 @@ namespace AnimationImage.Avalonia
 
         // 自动播放
         public static readonly AttachedProperty<bool> AutoStartProperty =
-            AvaloniaProperty.RegisterAttached<AnimationBehavior, Control, bool>("AutoStart", false);
+            AvaloniaProperty.RegisterAttached<AnimationBehavior, Control, bool>("AutoStart", true);
         public static bool GetAutoStart(Control obj) => obj.GetValue(AutoStartProperty);
         public static void SetAutoStart(Control obj, bool value) => obj.SetValue(AutoStartProperty, value);
 
