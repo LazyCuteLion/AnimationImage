@@ -93,7 +93,6 @@ namespace AnimationImage.Avalonia
                     Stream = new MemoryStream();
                     rsp.Content.CopyToAsync(Stream).Wait();
                     Stream.Position = 0;
-                    //Stream = rsp.Content.ReadAsStream();//rsp释放后，Stream也同样被释放了，所以得copy到内存
                 }
             }
             else if (source.Scheme == "avares")
