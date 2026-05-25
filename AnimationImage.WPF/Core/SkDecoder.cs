@@ -52,20 +52,17 @@ namespace AnimationImage.WPF
         {
             Codec = SKCodec.Create(stream);
             FrameCount = Codec.FrameCount;
-            PreloadCount = preloadCount;
+            PreloadCount = preloadCount == PreloadOptions.Full ? FrameCount : preloadCount;
 
             var first = this.DecodeFrame(0, new FrameData(1, null));
 
-            if (FrameCount > 1)
+            if (first.IsEmpty)
             {
-                if (first.IsEmpty)
-                {
-                    throw new NotSupportedException("解码失败");
-                }
-                else
-                {
-                    FrameCache.TryAdd(0, first.Bitmap.TryFreeze());
-                }
+                throw new NotSupportedException("解码失败");
+            }
+            else
+            {
+                FrameCache.TryAdd(0, first.Bitmap.TryFreeze());
             }
         }
 
@@ -85,10 +82,13 @@ namespace AnimationImage.WPF
             }
 
             var result = this.Decode(index, data);
-            if (!result.IsEmpty && PreloadCount == PreloadOptions.Full || PreloadCount >= FrameCount)
+            if (!result.IsEmpty && PreloadCount >= FrameCount)
             {
-                result.Bitmap.TryFreeze();
-                FrameCache.TryAdd(index, result.Bitmap);
+                if (!FrameCache.ContainsKey(index))
+                {
+                    result.Bitmap.TryFreeze();
+                    FrameCache.TryAdd(index, result.Bitmap);
+                }
             }
 
             return result;
@@ -96,7 +96,7 @@ namespace AnimationImage.WPF
 
         internal Task PreloadAsync()
         {
-            if (PreloadCount == PreloadOptions.Full || PreloadCount >= FrameCount)
+            if (PreloadCount >= FrameCount)
             {
                 if (FrameCache.Count < FrameCount)
                 {
@@ -105,6 +105,8 @@ namespace AnimationImage.WPF
                     {
                         for (var i = 1; i < FrameCount; i++)
                         {
+                            if (FrameCache.ContainsKey(i))
+                                continue;
                             temp = this.DecodeFrame(i, temp);
                             if (!temp.IsEmpty)
                             {
