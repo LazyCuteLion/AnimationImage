@@ -39,7 +39,8 @@ namespace AnimationImage.WPF
         private readonly object CodecLocker = new();
         private ConcurrentQueue<FrameData> FrameQueue = new();
         private ConcurrentDictionary<int, WriteableBitmap> FrameCache = new();
-        private CancellationTokenSource DecodeLoopToken = new();
+        private CancellationTokenSource DecodeLoopToken;
+        private CancellationTokenSource PreloadToken;
         private Task _preloadTask;
         public Task PreloadTask
         {
@@ -132,6 +133,7 @@ namespace AnimationImage.WPF
                     }
                     if (cache.Index == index)
                     {
+                        Debug.WriteLine($"预加载剩余：{FrameQueue.Count}");
                         return cache;
                     }
                 }
@@ -214,9 +216,9 @@ namespace AnimationImage.WPF
             if (data.Index == index)
                 return data;
 
-            if (data.Index == FrameCount - 1)
+            if (index == 0 && data.Index > 0)
             {
-                data = new FrameData(0, data.Bitmap);
+                data = new FrameData(-1, data.Bitmap);
             }
 
             if (data.Index > index)
@@ -301,16 +303,23 @@ namespace AnimationImage.WPF
         private void DecodeAndSave()
         {
             var n = Last.Index + 1;
-            n %= FrameCount;
+            if (n >= FrameCount)
+                n %= FrameCount;
             try
             {
                 var data = this.DecodeFrame(n, Last);
-                if (data.Index > -1 && !DecodeLoopToken.IsCancellationRequested)
+                if (!data.IsEmpty)
                 {
                     data.Bitmap.TryFreeze();
                     FrameQueue.Enqueue(data);
-                    Last = data;
-                    //Debug.WriteLine($"[{data.Index:0000}]已缓存");
+                    if (data.Index >= FrameCount - 1)
+                        Last = FrameData.Empty;
+                    else
+                        Last = data;
+                }
+                else
+                {
+                    Debug.WriteLine($"[{n:000}]解码失败");
                 }
             }
             catch (Exception e)
@@ -319,40 +328,21 @@ namespace AnimationImage.WPF
             }
         }
 
-        private void DecodeLoop()
-        {
-            Task.Run(async () =>
-            {
-                while (!DecodeLoopToken.IsCancellationRequested)
-                {
-                    lock (TaskLocker)
-                    {
-                        _preloadTask = Task.Run(() =>
-                        {
-                            while (FrameQueue.Count < PreloadCount)
-                            {
-                                if (DecodeLoopToken.IsCancellationRequested)
-                                    break;
-                                this.DecodeAndSave();
-                            }
-                        }, DecodeLoopToken.Token);
-                    }
-                    await _preloadTask;
-                    Thread.Sleep(2);
-                }
-            }, DecodeLoopToken.Token);
-        }
 
         private void CacheAll()
         {
             var last = 0;
             while (FrameQueue.TryDequeue(out FrameData cache))
             {
+                if (PreloadToken == null || PreloadToken.IsCancellationRequested)
+                    break;
                 FrameCache.TryAdd(cache.Index, cache.Bitmap.TryFreeze());
                 last = cache.Index;
             }
             while (FrameCache.Count < FrameCount)
             {
+                if (PreloadToken == null || PreloadToken.IsCancellationRequested)
+                    break;
                 var temp = new FrameData(last, FrameCache[last]);
                 for (var i = last + 1; i < FrameCount; i++)
                 {
@@ -365,6 +355,12 @@ namespace AnimationImage.WPF
             }
         }
 
+        /**
+         * 消费速度>生产速度
+         * 对于无限循环，有严重缺陷：只要多循环几次，预加载量就会被消耗完！
+         * 这种情况无解，只能全量缓存；或者升级CPU，提高生产速度（但若是生产速度够快，又何必预加载？🤣）
+         * 只适用于播放一次的动图！
+        **/
         private void TryPreload(int count)
         {
             if (count == PreloadOptions.Disable)
@@ -388,11 +384,11 @@ namespace AnimationImage.WPF
                 //>0，限定不能大于总帧数
                 PreloadCount = Math.Min(count, FrameCount);
             }
-
+            PreloadToken = new CancellationTokenSource();
             //全量缓存
             if (PreloadCount == FrameCount)
             {
-                _preloadTask = Task.Run(() => this.CacheAll(), DecodeLoopToken.Token);
+                _preloadTask = Task.Run(() => this.CacheAll(), PreloadToken.Token);
             }
             else if (count == PreloadOptions.Auto)
             {
@@ -406,20 +402,20 @@ namespace AnimationImage.WPF
                         while (FrameQueue.Count < PreloadCount)
                         {
                             this.DecodeAndSave();
-                            if (DecodeLoopToken.IsCancellationRequested)
+                            if (PreloadToken.IsCancellationRequested)
                                 return;
                         }
                         st.Stop();
 
                         //计算解码速度
-                        var cps = 1000.0 * loadCount / st.ElapsedMilliseconds;
+                        var cps = loadCount / st.Elapsed.TotalSeconds * 0.8;//取80%的速度
                         var duration = Codec.FrameInfo.Sum(d => d.Duration);
                         var fps = FrameCount * 1000.0 / duration;
 
                         //文件要求帧率大于解码速度
                         if (fps > cps)
                         {
-                            var bestCount = (int)Math.Ceiling((fps - cps) / fps * 1.2 * FrameCount);
+                            var bestCount = (int)Math.Ceiling((1 - (cps / fps)) * FrameCount) + (int)(fps * 0.1);//多准备0.1秒的帧数
                             //限定最小预加载量为3
                             if (bestCount < 3)
                                 bestCount = 3;
@@ -439,7 +435,7 @@ namespace AnimationImage.WPF
                                 while (FrameQueue.Count < PreloadCount)
                                 {
                                     this.DecodeAndSave();
-                                    if (DecodeLoopToken.IsCancellationRequested)
+                                    if (PreloadToken.IsCancellationRequested)
                                         return;
                                 }
                             }
@@ -451,29 +447,57 @@ namespace AnimationImage.WPF
                         //预加载量大于0，则启用后台线程，持续预加载
                         if (PreloadCount > 0)
                         {
-                            this.DecodeLoop();
+                            this.Start();
                         }
                     }
                     finally
                     {
                         st.Stop();
-                        Debug.WriteLine($"自动计算预加载量：[{PreloadCount}]，已加载：[{PreloadCount}]，耗时：{st.ElapsedMilliseconds}");
+                        Debug.WriteLine($"自动计算预加载量：[{PreloadCount}]，已加载：[{(FrameCache.Count > 0 ? FrameCache.Count : FrameQueue.Count)}]，耗时：{st.ElapsedMilliseconds}");
                     }
 
-                }, DecodeLoopToken.Token);
+                }, PreloadToken.Token);
             }
             else if (PreloadCount > 0)
             {
-                this.DecodeLoop();
+                this.Start();
             }
         }
 
         public void Dispose()
         {
-            DecodeLoopToken.Cancel();
+            PreloadToken?.Cancel();
+            PreloadToken?.Dispose();
+            DecodeLoopToken?.Cancel();
+            DecodeLoopToken?.Dispose();
             Codec.Dispose();
             FrameQueue.Clear();
             FrameCache.Clear();
+        }
+
+        /// <summary>
+        /// 播放暂停/停止，则停止生产
+        /// </summary>
+        public void Stop()
+        {
+            DecodeLoopToken?.Cancel();
+            DecodeLoopToken?.Dispose();
+            DecodeLoopToken = null;
+        }
+
+        public void Start()
+        {
+            if (DecodeLoopToken != null || PreloadCount == 0)
+                return;
+            DecodeLoopToken = new CancellationTokenSource();
+            Task.Run(() =>
+            {
+                while (DecodeLoopToken != null && !DecodeLoopToken.IsCancellationRequested)
+                {
+                    //消费速度大于生产速度，猛猛干就完了，不要管消费
+                    this.DecodeAndSave();
+                }
+            }, DecodeLoopToken.Token);
         }
     }
 }

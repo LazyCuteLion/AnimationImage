@@ -167,8 +167,20 @@ namespace AnimationImage.Avalonia
                 await Decoder.PreloadTask;
                 IsLoading = false;
             }
-
+            Decoder.Start();
             base.BeginAnimation();
+        }
+
+        protected override void PauseAnimation()
+        {
+            Decoder.Stop();
+            base.PauseAnimation();
+        }
+
+        protected override void StopAnimation()
+        {
+            Decoder.Stop();
+            base.StopAnimation();
         }
     }
 }
