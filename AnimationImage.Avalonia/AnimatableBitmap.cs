@@ -76,7 +76,10 @@ namespace AnimationImage.Avalonia
             }
         }
 
-        public virtual bool IsAnimatable => Frame != null && Target != null && State != AnimationState.Error;
+        public virtual bool IsAnimatable => Frame != null
+                                         && Target != null
+                                         && Target.IsVisible
+                                         && State != AnimationState.Error;
 
         public ICommand BeginCommand { get; }
         public ICommand PauseCommand { get; }
@@ -109,8 +112,8 @@ namespace AnimationImage.Avalonia
                 throw new IOException($"读取资源失败：{source}");
             }
 
-            this.BeginCommand = new RelayCommand(this.BeginAnimation, () => this.IsAnimatable);
-            this.PauseCommand = new RelayCommand(this.PauseAnimation);
+            this.BeginCommand = new RelayCommand(this.BeginAnimation, () => this.IsAnimatable && State != AnimationState.Playing);
+            this.PauseCommand = new RelayCommand(this.PauseAnimation, () => State == AnimationState.Playing);
             this.StopCommand = new RelayCommand(this.StopAnimation);
 
             if (EnableTPS)
@@ -229,6 +232,7 @@ namespace AnimationImage.Avalonia
             {
                 AnimationToken = new CancellationTokenSource();
                 this.State = AnimationState.Playing;
+                this.UpdateCommandState();
                 this.CreateAnimation();
                 await Animation.RunAsync(Target, AnimationToken.Token);
                 if (!AnimationToken.IsCancellationRequested)
@@ -250,14 +254,24 @@ namespace AnimationImage.Avalonia
             var currentTime = this.CurrentTime;
             AnimationToken?.Cancel();
             this.State = AnimationState.Paused;
+            this.UpdateCommandState();
             AnimationBehavior.SetAnimationTime(Target, currentTime);
+
         }
 
         protected virtual void StopAnimation()
         {
             AnimationToken?.Cancel();
             this.State = AnimationState.Stopped;
+            this.UpdateCommandState();
             AnimationBehavior.SetAnimationTime(Target, 0.0);
+        }
+
+        protected void UpdateCommandState()
+        {
+            (this.BeginCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (this.PauseCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (this.StopCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         internal virtual void SeekTime(double milliseconds)

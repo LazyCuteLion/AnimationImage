@@ -70,7 +70,10 @@ namespace AnimationImage.WPF
             }
         }
 
-        public virtual bool IsAnimatable => Frame != null && Target != null && State != AnimationState.Error;
+        public virtual bool IsAnimatable => Frame != null
+                                        && Target != null
+                                        && Target.IsVisible
+                                        && State != AnimationState.Error;
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void RasiePropertyChanged([CallerMemberName] string name = null)
@@ -111,7 +114,7 @@ namespace AnimationImage.WPF
                 throw new IOException($"读取资源失败：{source}");
             }
 
-            this.BeginCommand = new RelayCommand(this.BeginAnimation, () => IsAnimatable);
+            this.BeginCommand = new RelayCommand(this.BeginAnimation, () => IsAnimatable && State != AnimationState.Playing);
             this.PauseCommand = new RelayCommand(this.PauseAnimation, () => State == AnimationState.Playing);
             this.StopCommand = new RelayCommand(this.StopAnimation, () => Target != null);
 
@@ -221,6 +224,7 @@ namespace AnimationImage.WPF
             var time = this.CurrentTime;
             this.State = AnimationState.Completed;
             AnimationBehavior.SetAnimationTime(Target, time);
+            CommandManager.InvalidateRequerySuggested();
         }
 
         protected virtual void BeginAnimation()
@@ -263,6 +267,7 @@ namespace AnimationImage.WPF
             }
 
             this.State = AnimationState.Playing;
+            this.UpdateCommandState();
         }
 
         protected virtual void PauseAnimation()
@@ -271,6 +276,7 @@ namespace AnimationImage.WPF
                 return;
             Storyboard?.Pause();
             this.State = AnimationState.Paused;
+            this.UpdateCommandState();
         }
 
         protected virtual void StopAnimation()
@@ -282,6 +288,12 @@ namespace AnimationImage.WPF
             }
             Storyboard?.Stop();
             this.State = AnimationState.Stopped;
+            this.UpdateCommandState();
+        }
+
+        protected void UpdateCommandState()
+        {
+            CommandManager.InvalidateRequerySuggested();
         }
 
         internal virtual void SeekTime(double milliseconds)

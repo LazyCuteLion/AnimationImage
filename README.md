@@ -35,7 +35,9 @@ Install-Package AnimationImage.Avalonia
 
 ---
 
-## 使用方法（参考2个Demo项目）
+## 使用方法（参考2个Demo项目）  
+<span style="color:red;">**由于预加载功能存在重大缺陷，已调整该功能，目前仅支持开启全量缓存**</span>  
+
 WPF：`xmlns:ani="clr-namespace:AnimationImage.WPF;assembly=AnimationImage.WPF"`  
 
 ```xaml
@@ -44,8 +46,8 @@ WPF：`xmlns:ani="clr-namespace:AnimationImage.WPF;assembly=AnimationImage.WPF"`
        ani:AnimationBehavior.ForceFPS="144"
        ani:AnimationBehavior.RepeatBehavior="Forever" />
 
-<!-- 指定预加载帧数 -->
-<Image Source="{ani:AnimatableBitmap '[path]',PreloadCount=30}" />
+<!-- 全量缓存 -->
+<Image Source="{ani:AnimatableBitmap '[path]',PreloadCount=PreloadOptions.Full}" />
 
 <!-- 也可以用到拥有Brush类型属性的控件 -->
 <Rectangle Fill="{ani:AnimatableBitmap '[path]'}" />

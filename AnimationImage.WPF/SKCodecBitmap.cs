@@ -5,9 +5,11 @@ using System.Collections.Generic;
 using System;
 
 #if WPF
+using System.Windows.Input;
 namespace AnimationImage.WPF
 #endif
 #if AVALONIA
+using Avalonia.Input;
 namespace AnimationImage.Avalonia
 #endif
 {
@@ -30,7 +32,7 @@ namespace AnimationImage.Avalonia
         private bool IsLoading = false;
         #endregion
 
-        public SKCodecBitmap(Uri source, int preloadCount = PreloadOptions.Auto) : base(source)
+        public SKCodecBitmap(Uri source, int preloadCount = PreloadOptions.Disable) : base(source)
         {
             //暂时先只处理本地文件
             Decoder = new SkDecoder(Stream, preloadCount);
@@ -74,7 +76,7 @@ namespace AnimationImage.Avalonia
         public override bool IsAnimatable => base.IsAnimatable
                             && Decoder.Codec != null
                             && FrameCount > 0
-                            && Target.IsVisible;
+                            && !IsLoading;
 
         /// <summary>
         /// 跳转到指定时间点（毫秒）
@@ -164,23 +166,12 @@ namespace AnimationImage.Avalonia
             if (State != AnimationState.Paused)
             {
                 IsLoading = true;
-                await Decoder.PreloadTask;
+                this.UpdateCommandState();
+                await Decoder.PreloadAsync();
                 IsLoading = false;
+                this.UpdateCommandState();
             }
-            Decoder.Start();
             base.BeginAnimation();
-        }
-
-        protected override void PauseAnimation()
-        {
-            Decoder.Stop();
-            base.PauseAnimation();
-        }
-
-        protected override void StopAnimation()
-        {
-            Decoder.Stop();
-            base.StopAnimation();
         }
     }
 }

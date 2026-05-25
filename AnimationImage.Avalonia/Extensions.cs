@@ -13,6 +13,18 @@ namespace AnimationImage.Avalonia
 {
     internal static class Extensions
     {
+        public static WriteableBitmap TryFreeze(this WriteableBitmap bitmap)
+        {
+            //空方法，方便与WPF共享代码
+            return bitmap;
+        }
+
+        public static WriteableBitmap SafeClone(this WriteableBitmap bitmap)
+        {
+            //空方法，方便与WPF共享代码
+            return bitmap;
+        }
+
         public static WriteableBitmap Clone(this WriteableBitmap source)
         {
             var clone = new WriteableBitmap(

@@ -15,7 +15,7 @@ namespace AnimationImage.Avalonia
         [TypeConverter(typeof(UriTypeConverter))]
         public Uri Source { get; set; }
 
-        public int PreloadCount { get; set; } = PreloadOptions.Auto;
+        public int PreloadCount { get; set; } = PreloadOptions.Disable;
 
         public AnimatableBitmapExtension(Uri source)
         {

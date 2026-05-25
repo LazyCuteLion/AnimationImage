@@ -30,7 +30,7 @@ namespace AnimationImage.Avalonia
             _defaultCreator = creator;
         }
 
-        public AnimatableBitmap Create(Uri source, int preloadCount = PreloadOptions.Auto)
+        public AnimatableBitmap Create(Uri source, int preloadCount = PreloadOptions.Disable)
         {
             var ext = Path.GetExtension(source.AbsolutePath).ToLower();
             var args = new Dictionary<string, object>
