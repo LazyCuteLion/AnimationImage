@@ -46,8 +46,11 @@ WPF：`xmlns:ani="clr-namespace:AnimationImage.WPF;assembly=AnimationImage.WPF"`
        ani:AnimationBehavior.ForceFPS="144"
        ani:AnimationBehavior.RepeatBehavior="Forever" />
 
-<!-- 全量缓存 -->
+<!-- 全量缓存（gif/webp有效） -->
 <Image Source="{ani:AnimatableBitmap '[path]',PreloadCount=PreloadOptions.Full}" />
+
+<!-- 设置渲染比例（Lottie有效） -->
+<Image Source="{ani:AnimatableBitmap '[path]',RenderScale=0.5}" />
 
 <!-- 也可以用到拥有Brush类型属性的控件 -->
 <Rectangle Fill="{ani:AnimatableBitmap '[path]'}" />
