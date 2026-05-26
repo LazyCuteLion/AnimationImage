@@ -21,6 +21,19 @@
 
 ---
 
+性能表现：  
+1、lottie动画  
+![wpf-lottie](Images/wpf-lottie.webp)  
+![avalonia-lottie](Images/avalonia-lottie.webp)  
+
+2、gif-800x600-50fps  
+![wpf-gif-800x600-50fps](Images/wpf-gif-800x600-50fps.webp)  
+![avalonia-gif-800x600-50fps](Images/avalonia-gif-800x600-50fps.webp)  
+
+3、gif-1920x1080-30fps，流畅播放，但是进度条拖动不理想  
+![wpf-gif-1920x1080-30fps](Images/wpf-gif-1920x1080-30fps.webp)  
+![avalonia-gif-1920x1080-30fps](Images/avalonia-gif-1920x1080-30fps.webp)
+
 ## 📦 安装
 
 通过 NuGet 包管理器安装：
