@@ -16,143 +16,107 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using FrameworkElement = Avalonia.Controls.Control;
 
 namespace AnimationImage.Avalonia
 {
     [TypeConverter(typeof(AnimatableBitmapConverter))]
-    public abstract class AnimatableBitmap : INotifyPropertyChanged
+    public abstract partial class AnimatableBitmap
     {
-        protected Stream Stream;
-        protected double CurrentTime { get; private set; }
-        protected Control Target;
-        private Stopwatch TPSwatcher;
-        private int TPSCount;
-
-        private WriteableBitmap _frame;
-        public WriteableBitmap Frame
+        protected virtual void Dispose(bool disposing)
         {
-            get => _frame;
-            protected set
+            if (IsDisposed)
+                return;
+            if (disposing)
             {
-                if (_frame != value)
+                //释放托管资源
+                AnimationToken?.Cancel();
+                AnimationToken?.Dispose();
+
+                if (Target != null)
                 {
-                    _frame = value;
-                    this.RasiePropertyChanged();
+                    Target.PropertyChanged -= Target_PropertyChanged;
+                    if (TopLevel.GetTopLevel(Target) is Window win)
+                    {
+                        win.PropertyChanged -= Target_PropertyChanged;
+                    }
+                    Target = null;
                 }
+
+                this.Frame?.Dispose();
+
+                Stream?.Dispose();
+
+                TPSwatcher?.Stop();
             }
+            //释放非托管资源
+            IsDisposed = true;
         }
 
-        private AnimationState _state = AnimationState.None;
-        public AnimationState State
-        {
-            get => _state;
-            protected set
-            {
-                if (_state != value)
-                {
-                    _state = value;
-                    this.RasiePropertyChanged();
-                }
-            }
-        }
-
-        public Metadata Metadata { get; protected set; }
-
-        private double _tps;
-        /// <summary>
-        /// 每秒更新次数（Ticks Per Second），表示动画实际更新的频率，数值越高动画越流畅。
-        /// 启用TPS统计后可以通过绑定此属性来监控动画的性能表现。
-        /// </summary>
-        public double TPS
-        {
-            get => _tps;
-            private set
-            {
-                if (_tps != value)
-                {
-                    _tps = Math.Round(value, 1);
-                    this.RasiePropertyChanged();
-                }
-            }
-        }
-
-        public virtual bool IsAnimatable => Frame != null
-                                         && Target != null
-                                         && Target.IsVisible
-                                         && State != AnimationState.Error;
-
-        public ICommand BeginCommand { get; }
-        public ICommand PauseCommand { get; }
-        public ICommand StopCommand { get; }
-
-        public AnimatableBitmap(Uri source)
-        {
-            if (source.Scheme == Uri.UriSchemeHttp || source.Scheme == Uri.UriSchemeHttps)
-            {
-                using var client = new HttpClient();
-                using var rsp = client.GetAsync(source).Result;
-                if (rsp?.IsSuccessStatusCode == true)
-                {
-                    Stream = new MemoryStream();
-                    rsp.Content.CopyToAsync(Stream).Wait();
-                    Stream.Position = 0;
-                }
-            }
-            else if (source.Scheme == "avares")
-            {
-                Stream = AssetLoader.Open(source);
-            }
-            else if (source.IsFile)
-            {
-                Stream = File.OpenRead(source.LocalPath);
-            }
-
-            if (Stream == null)
-            {
-                throw new IOException($"读取资源失败：{source}");
-            }
-
-            this.BeginCommand = new RelayCommand(this.BeginAnimation, () => this.IsAnimatable && State != AnimationState.Playing);
-            this.PauseCommand = new RelayCommand(this.PauseAnimation, () => State == AnimationState.Playing);
-            this.StopCommand = new RelayCommand(this.StopAnimation);
-
-            if (EnableTPS)
-            {
-                TPSwatcher = Stopwatch.StartNew();
-                TPSCount = 0;
-            }
-        }
-
-        public virtual void AttachTarget(Control target)
+        public virtual async void AttachTarget(FrameworkElement target)
         {
             Target = target;
             if (Target is Image img)
             {
                 img.Bind(Image.SourceProperty, new Binding(nameof(this.Frame)) { Source = this });
             }
+            await Target.WaitForLoadedAsync();
+            Target.PropertyChanged += Target_PropertyChanged;
+            Target.DetachedFromVisualTree += Target_DetachedFromVisualTree;
+            if (TopLevel.GetTopLevel(Target) is Window win)
+            {
+                win.PropertyChanged += Target_PropertyChanged;
+            }
             if (AnimationBehavior.GetAutoStart(target))
                 this.BeginAnimation();
         }
 
-        public virtual void Dispose()
+        private void Target_DetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
         {
-            AnimationToken?.Cancel();
-            AnimationToken?.Dispose();
-
-            if (Target != null)
+            if (sender is FrameworkElement el)
             {
-                Target = null;
+                el.DetachedFromVisualTree -= Target_DetachedFromVisualTree;
+                this.Dispose(true);
             }
+        }
 
-            this.Frame = null;
-
-            Stream?.Dispose();
-
-            TPSwatcher?.Stop();
+        private void Target_PropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (Target == null) return;
+            if (e.Property == FrameworkElement.IsVisibleProperty)
+            {
+                if (e.NewValue?.Equals(false) == false && State == AnimationState.Playing)
+                {
+                    this.PauseAnimation();
+                    WaitForResume = true;
+                }
+                else if (WaitForResume)
+                {
+                    WaitForResume = false;
+                    this.BeginAnimation();
+                }
+            }
+            else if (e.Property == Window.WindowStateProperty)
+            {
+                if (e.NewValue is WindowState state)
+                {
+                    if (state == WindowState.Minimized && State == AnimationState.Playing)
+                    {
+                        this.PauseAnimation();
+                        WaitForResume = true;
+                    }
+                    else if (WaitForResume)
+                    {
+                        WaitForResume = false;
+                        this.BeginAnimation();
+                    }
+                }
+            }
         }
 
         private Animation Animation;
         private CancellationTokenSource AnimationToken;
+
         private void CreateAnimation()
         {
             var loopCount = AnimationBehavior.GetLoopCount(Target) ?? (Metadata.LoopCount >= 0 ? Metadata.LoopCount + 1 : Metadata.LoopCount);
@@ -274,52 +238,9 @@ namespace AnimationImage.Avalonia
             (this.StopCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
-        internal virtual void SeekTime(double milliseconds)
-        {
-            this.CurrentTime = milliseconds;
-
-            if (EnableTPS)
-            {
-                TPSCount++;
-                if (TPSwatcher.ElapsedMilliseconds >= 1000)
-                {
-                    this.TPS = TPSCount * 1000.0 / TPSwatcher.ElapsedMilliseconds;
-                    TPSwatcher.Restart();
-                    TPSCount = 0;
-                }
-            }
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected void RasiePropertyChanged([CallerMemberName] string name = null)
-        {
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
-
-        #region static
-        /// <summary>
-        /// 是否启用TPS（每秒更新次数）统计，启用后可以通过绑定TPS属性来监控动画的实际更新频率
-        /// </summary>
-        /// <remarks>
-        /// 默认在调试模式下启用，发布模式下禁用。
-        /// </remarks>
-        public static bool EnableTPS { get; set; }
-
         internal static WriteableBitmap CreateNewFrame(int width, int height)
         {
-            return new WriteableBitmap(new PixelSize(width, height), new Vector(96d, 96d), PixelFormats.Bgra8888, AlphaFormat.Premul);
+            return new WriteableBitmap(new PixelSize(width, height), new Vector(96d, 96d), PixelFormat.Bgra8888, AlphaFormat.Premul);
         }
-
-        internal static SKImageInfo CreateDecodeInfo(int width, int height)
-        {
-            return new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
-        }
-        static AnimatableBitmap()
-        {
-#if DEBUG
-            EnableTPS = true;
-#endif
-        }
-        #endregion
     }
 }

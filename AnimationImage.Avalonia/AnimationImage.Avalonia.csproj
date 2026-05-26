@@ -15,10 +15,7 @@
     <Compile Remove="AnimatableBitmapFactory.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\AnimationImage.WPF\Core\*.cs">
-      <Link>\Share\%(Filename)%(Extension)</Link>
-    </Compile>
-    <Compile Include="..\AnimationImage.WPF\SKCodecBitmap.cs">
+    <Compile Include="..\AnimationImage.WPF\Share\*.cs">
       <Link>\Share\%(Filename)%(Extension)</Link>
     </Compile>
   </ItemGroup>

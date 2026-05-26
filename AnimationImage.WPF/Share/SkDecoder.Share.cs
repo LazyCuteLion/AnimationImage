@@ -119,5 +119,11 @@ namespace AnimationImage.WPF
             return Task.CompletedTask;
         }
 
+        private bool IsDisposed;
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
     }
 }

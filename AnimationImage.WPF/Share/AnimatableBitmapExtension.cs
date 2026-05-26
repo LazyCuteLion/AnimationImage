@@ -1,14 +1,33 @@
 ﻿using AnimationImage.Core;
+using System;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+#if WPF
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Markup;
+using System.Windows.Media;
+using System.Windows.Shapes;
+
+namespace AnimationImage.WPF
+#endif
+
+#if AVALONIA
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Data;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
-using System;
-using System.ComponentModel;
+using FrameworkElement = Avalonia.Controls.Control;
+using DependencyProperty = Avalonia.AvaloniaProperty;
 
 namespace AnimationImage.Avalonia
+#endif
 {
     public class AnimatableBitmapExtension : MarkupExtension
     {
@@ -16,6 +35,13 @@ namespace AnimationImage.Avalonia
         public Uri Source { get; set; }
 
         public int PreloadCount { get; set; } = PreloadOptions.Disable;
+
+        public double RenderScale { get; set; } = 1.0;
+
+        public AnimatableBitmapOptions ToOptions()
+        {
+            return new AnimatableBitmapOptions(this.Source, this.PreloadCount, this.RenderScale);
+        }
 
         public AnimatableBitmapExtension(Uri source)
         {
@@ -26,29 +52,39 @@ namespace AnimationImage.Avalonia
         {
             var targetProvider = serviceProvider.GetService(typeof(IProvideValueTarget)) as IProvideValueTarget;
 
-            if (targetProvider?.TargetObject is Control target
-             && targetProvider?.TargetProperty is AvaloniaProperty property)
+            if (targetProvider?.TargetObject is FrameworkElement target
+             && targetProvider?.TargetProperty is DependencyProperty property)
             {
-                var source = AnimatableBitmapFactory.Default.Create(this.Source, this.PreloadCount);
+                var bitmap = AnimatableBitmapFactory.Default.Create(this.ToOptions());
                 if (property == AnimationBehavior.AnimatableBitmapProperty)
                 {
-                    return source;
+                    return bitmap;
                 }
                 else
                 {
-                    AnimationBehavior.SetAnimatableBitmap(target, source);
+                    AnimationBehavior.SetAnimatableBitmap(target, bitmap);
                     if (property == Image.SourceProperty)
                     {
-                        var binding = new Binding(nameof(source.Frame)) { Source = source, Mode = BindingMode.OneWay };
+                        var binding = new Binding(nameof(bitmap.Frame)) { Source = bitmap, Mode = BindingMode.OneWay };
+#if WPF
+                        return binding.ProvideValue(serviceProvider);
+#endif
+#if AVALONIA
                         return binding;
+#endif
                     }
                     else if (property == Shape.FillProperty
                         || property == Border.BackgroundProperty
                         || property == Panel.BackgroundProperty)
                     {
                         var brush = new ImageBrush();
-                        var binding = new Binding(nameof(source.Frame)) { Source = source, Mode = BindingMode.OneWay };
+                        var binding = new Binding(nameof(bitmap.Frame)) { Source = bitmap, Mode = BindingMode.OneWay };
+#if WPF
+                        BindingOperations.SetBinding(brush, ImageBrush.ImageSourceProperty, binding);
+#endif
+#if AVALONIA
                         brush.Bind(ImageBrush.SourceProperty, binding);
+#endif
                         return brush;
                     }
                 }
@@ -56,5 +92,6 @@ namespace AnimationImage.Avalonia
 
             return null;
         }
+
     }
 }

@@ -18,6 +18,7 @@ namespace AnimationImage.Avalonia.Demo
         {
             InitializeComponent();
             this.RendererDiagnostics.DebugOverlays = RendererDebugOverlays.Fps;
+
         }
 
         private async void Button_Click(object? sender, RoutedEventArgs e)
@@ -34,10 +35,10 @@ namespace AnimationImage.Avalonia.Demo
             });
             if (file?.Count > 0)
             {
-                var bitmap = AnimatableBitmapFactory.Default.Create(file[0].Path);
+                var bitmap = AnimatableBitmapFactory.Default.Create(file[0].Path, renderScale: 0.2);
                 AnimationBehavior.SetAnimatableBitmap(view, bitmap);
             }
         }
-       
+
     }
 }

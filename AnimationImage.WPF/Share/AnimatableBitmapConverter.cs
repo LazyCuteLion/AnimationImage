@@ -30,7 +30,7 @@ namespace AnimationImage.Avalonia
             }
             else if (value is string str)
             {
-                return AnimatableBitmapFactory.Default.Create(new Uri(str, UriKind.RelativeOrAbsolute));
+                return AnimatableBitmapFactory.Default.Create(str);
             }
             return null;
         }

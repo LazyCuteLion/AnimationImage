@@ -1,4 +1,6 @@
 ﻿using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using SkiaSharp;
@@ -13,6 +15,43 @@ namespace AnimationImage.Avalonia
 {
     internal static class Extensions
     {
+        /// <summary>
+        /// 异步等待Loaded事件
+        /// </summary>
+        /// <returns>
+        /// <list type="bullet">
+        /// <item>
+        /// true ：表示在此之前IsLoaded=false，已等待Loaded事件
+        /// </item>
+        /// <item>
+        /// false：表示在此之前IsLoaded=true，没有等待立即返回
+        /// </item>
+        /// </list>
+        /// </returns>
+        public static Task<bool> WaitForLoadedAsync(this Control element)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+
+            if (element.IsLoaded)
+            {
+                // 已经加载完成，直接返回
+                tcs.SetResult(false);
+            }
+            else
+            {
+                // 等待 Loaded 事件
+                EventHandler<RoutedEventArgs>? handler = null;
+                handler = (s, e) =>
+                {
+                    element.Loaded -= handler;
+                    tcs.SetResult(true);
+                };
+                element.Loaded += handler;
+            }
+
+            return tcs.Task;
+        }
+
         public static WriteableBitmap TryFreeze(this WriteableBitmap bitmap)
         {
             //空方法，方便与WPF共享代码

@@ -32,10 +32,10 @@ namespace AnimationImage.Avalonia
         private bool IsLoading = false;
         #endregion
 
-        public SKCodecBitmap(Uri source, int preloadCount = PreloadOptions.Disable) : base(source)
+        public SKCodecBitmap(AnimatableBitmapOptions options) : base(options)
         {
             //暂时先只处理本地文件
-            Decoder = new SkDecoder(Stream, preloadCount);
+            Decoder = new SkDecoder(Stream, options.PreloadCount);
             if (Decoder.Codec == null)
             {
                 this.State = AnimationState.Error;
@@ -66,11 +66,16 @@ namespace AnimationImage.Avalonia
             CurrentIndex = data.Index;
         }
 
-        public override void Dispose()
+        protected override void Dispose(bool disposing)
         {
-            Decoder.Dispose();
-            Durations.Clear();
-            base.Dispose();
+            if (IsDisposed)
+                return;
+            if (disposing)
+            {
+                Decoder.Dispose();
+                Durations.Clear();
+            }
+            base.Dispose(disposing);
         }
 
         public override bool IsAnimatable => base.IsAnimatable

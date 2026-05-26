@@ -10,7 +10,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
-using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -24,107 +23,8 @@ using System.Windows.Media.Imaging;
 namespace AnimationImage.WPF
 {
     [TypeConverter(typeof(AnimatableBitmapConverter))]
-    public abstract class AnimatableBitmap : INotifyPropertyChanged
+    public abstract partial class AnimatableBitmap
     {
-        protected Stream Stream;
-        protected double CurrentTime { get; private set; }
-        protected FrameworkElement Target;
-        protected Storyboard Storyboard;
-        private bool Resume = false;
-        private Stopwatch TPSwatcher;
-        private int TPSCount;
-
-        private WriteableBitmap _frame;
-        public WriteableBitmap Frame
-        {
-            get => _frame;
-            protected set
-            {
-                if (_frame != value)
-                {
-                    _frame = value;
-                    this.RasiePropertyChanged();
-                }
-            }
-        }
-
-        public AnimationState State { get; protected set; } = AnimationState.None;
-
-        public Metadata Metadata { get; protected set; }
-
-        private double _tps;
-        /// <summary>
-        /// 每秒更新次数（Ticks Per Second），表示动画实际更新的频率，数值越高动画越流畅。
-        /// 启用TPS统计后可以通过绑定此属性来监控动画的性能表现。
-        /// </summary>
-        public double TPS
-        {
-            get => _tps;
-            private set
-            {
-                if (_tps != value)
-                {
-                    _tps = value;
-                    this.RasiePropertyChanged();
-                }
-            }
-        }
-
-        public virtual bool IsAnimatable => Frame != null
-                                        && Target != null
-                                        && Target.IsVisible
-                                        && State != AnimationState.Error;
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected void RasiePropertyChanged([CallerMemberName] string name = null)
-        {
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
-
-        public ICommand BeginCommand { get; }
-        public ICommand PauseCommand { get; }
-        public ICommand StopCommand { get; }
-
-        public AnimatableBitmap(Uri source)
-        {
-            if (source.Scheme == Uri.UriSchemeHttp || source.Scheme == Uri.UriSchemeHttps)
-            {
-                using var client = new HttpClient();
-                using var rsp = client.GetAsync(source).Result;
-                if (rsp?.IsSuccessStatusCode == true)
-                {
-                    Stream = new MemoryStream();
-                    rsp.Content.CopyToAsync(Stream).Wait();
-                    Stream.Position = 0;
-                }
-            }
-            else if (source.Scheme == "pack")
-            {
-                Stream = Application.GetResourceStream(source)?.Stream
-                      ?? Application.GetContentStream(source)?.Stream
-                      ?? Application.GetRemoteStream(source)?.Stream;
-            }
-            else if (source.IsFile)
-            {
-                Stream = File.OpenRead(source.LocalPath);
-            }
-
-            if (Stream == null)
-            {
-                throw new IOException($"读取资源失败：{source}");
-            }
-
-            this.BeginCommand = new RelayCommand(this.BeginAnimation, () => IsAnimatable && State != AnimationState.Playing);
-            this.PauseCommand = new RelayCommand(this.PauseAnimation, () => State == AnimationState.Playing);
-            this.StopCommand = new RelayCommand(this.StopAnimation, () => Target != null);
-
-            if (EnableTPS)
-            {
-                TPSwatcher = Stopwatch.StartNew();
-                TPSCount = 0;
-            }
-        }
-
         public virtual async void AttachTarget(FrameworkElement target)
         {
             Target = target;
@@ -134,9 +34,21 @@ namespace AnimationImage.WPF
             }
             await Target.WaitForLoadedAsync();
             Target.IsVisibleChanged += Target_IsVisibleChanged;
+            Target.Unloaded += Target_Unloaded;
             if (Window.GetWindow(Target) is Window win)
             {
                 win.StateChanged += Window_StateChanged;
+            }
+            if (AnimationBehavior.GetAutoStart(target))
+                this.BeginAnimation();
+        }
+
+        private void Target_Unloaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement el)
+            {
+                el.Unloaded -= Target_Unloaded;
+                this.Dispose(true);
             }
         }
 
@@ -148,11 +60,11 @@ namespace AnimationImage.WPF
                 if (win.WindowState == WindowState.Minimized && State == AnimationState.Playing)
                 {
                     this.PauseAnimation();
-                    Resume = true;
+                    WaitForResume = true;
                 }
-                else if (Resume)
+                else if (WaitForResume)
                 {
-                    Resume = false;
+                    WaitForResume = false;
                     this.BeginAnimation();
                 }
             }
@@ -164,41 +76,48 @@ namespace AnimationImage.WPF
             if (e.NewValue.Equals(false) && State == AnimationState.Playing)
             {
                 this.PauseAnimation();
-                Resume = true;
+                WaitForResume = true;
             }
-            else if (Resume)
+            else if (WaitForResume)
             {
-                Resume = false;
+                WaitForResume = false;
                 this.BeginAnimation();
             }
         }
 
-        public virtual void Dispose()
+        protected virtual void Dispose(bool disposing)
         {
-            if (Storyboard != null)
+            if (IsDisposed)
+                return;
+            if (disposing)
             {
-                Storyboard.Completed -= OnCompleted;
-                Storyboard.Stop();
-            }
-
-            if (Target != null)
-            {
-                Target.BeginAnimation(AnimationBehavior.AnimationTimeProperty, null);
-                Target.IsVisibleChanged -= Target_IsVisibleChanged;
-                if (Window.GetWindow(Target) is Window win)
+                if (Storyboard != null)
                 {
-                    win.StateChanged -= Window_StateChanged;
+                    Storyboard.Completed -= OnCompleted;
+                    Storyboard.Stop();
                 }
-                Target = null;
+
+                if (Target != null)
+                {
+                    Target.BeginAnimation(AnimationBehavior.AnimationTimeProperty, null);
+                    Target.IsVisibleChanged -= Target_IsVisibleChanged;
+                    if (Window.GetWindow(Target) is Window win)
+                    {
+                        win.StateChanged -= Window_StateChanged;
+                    }
+                    Target = null;
+                }
+
+                this.Frame = null;
+
+                Stream?.Dispose();
+
+                TPSwatcher?.Stop();
             }
-
-            this.Frame = null;
-
-            Stream?.Dispose();
-
-            TPSwatcher?.Stop();
+            IsDisposed = true;
         }
 
+        protected Storyboard Storyboard;
         private void CreateAnimation()
         {
             var repeatBehavior = AnimationBehavior.GetRepeatBehavior(Target) ??
@@ -215,7 +134,7 @@ namespace AnimationImage.WPF
             Storyboard.SetTarget(animation, Target);
             Storyboard.Children.Add(animation);
             var forceFPS = AnimationBehavior.GetForceFPS(Target);
-            Timeline.SetDesiredFrameRate(Storyboard, forceFPS > 0 ? forceFPS : this.Metadata.Fps);
+            Timeline.SetDesiredFrameRate(Storyboard, forceFPS > 0 ? forceFPS : this.Metadata.FPS);
             Storyboard.Completed += OnCompleted;
         }
 
@@ -256,7 +175,7 @@ namespace AnimationImage.WPF
                                               : new RepeatBehavior(this.Metadata.LoopCount + 1));
 
                 var forceFPS = AnimationBehavior.GetForceFPS(Target);
-                Timeline.SetDesiredFrameRate(Storyboard, forceFPS > 0 ? forceFPS : this.Metadata.Fps);
+                Timeline.SetDesiredFrameRate(Storyboard, forceFPS > 0 ? forceFPS : this.Metadata.FPS);
             }
 
             Storyboard.Begin();
@@ -296,45 +215,9 @@ namespace AnimationImage.WPF
             CommandManager.InvalidateRequerySuggested();
         }
 
-        internal virtual void SeekTime(double milliseconds)
-        {
-            this.CurrentTime = milliseconds;
-            if (EnableTPS)
-            {
-                TPSCount++;
-                if (TPSwatcher.ElapsedMilliseconds >= 1000)
-                {
-                    this.TPS = TPSCount * 1000.0 / TPSwatcher.ElapsedMilliseconds;
-                    TPSwatcher.Restart();
-                    TPSCount = 0;
-                }
-            }
-        }
-
-        #region static
-        /// <summary>
-        /// 是否启用TPS（每秒更新次数）统计，启用后可以通过绑定TPS属性来监控动画的实际更新频率
-        /// </summary>
-        /// <remarks>
-        /// 默认在调试模式下启用，发布模式下禁用。
-        /// </remarks>
-        public static bool EnableTPS { get; set; }
-
         internal static WriteableBitmap CreateNewFrame(int width, int height)
         {
             return new WriteableBitmap(width, height, 96d, 96d, PixelFormats.Pbgra32, null);
         }
-
-        internal static SKImageInfo CreateDecodeInfo(int width, int height)
-        {
-            return new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
-        }
-        static AnimatableBitmap()
-        {
-#if DEBUG
-            EnableTPS = true;
-#endif
-        }
-        #endregion
     }
 }

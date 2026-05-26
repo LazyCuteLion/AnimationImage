@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 
 namespace AnimationImage.Core
 {
@@ -14,7 +10,7 @@ namespace AnimationImage.Core
             PixelHeight = pixelHeight;
             Duration = duration;
             FrameCount = frameCount;
-            Fps = fps;
+            FPS = fps;
             LoopCount = loopCount;
         }
 
@@ -28,10 +24,10 @@ namespace AnimationImage.Core
         public double Duration { get; }
 
         /// <summary>
-        /// 帧数
+        /// 总帧数
         /// </summary>
         /// <remarks>
-        /// Lottie动画无此数据，设为1000
+        /// Lottie：Duration*FPS
         /// </remarks>
         public int FrameCount { get; }
 
@@ -39,9 +35,9 @@ namespace AnimationImage.Core
         /// 动画设定的帧率
         /// </summary>
         /// <remarks>
-        /// gif、webp为平均帧率(FrameCount/Duration)
+        /// GIF、WebP：FrameCount/Duration
         /// </remarks>
-        public int Fps { get; }
+        public int FPS { get; }
 
         /// <summary>
         /// 循环次数。
@@ -56,7 +52,7 @@ namespace AnimationImage.Core
             sb.AppendFormat("FrameCount:{0}\r\n", FrameCount);
             sb.AppendFormat("Duration:{0:F2}(ms)\r\n", Duration);
             sb.AppendFormat("LoopCount:{0}\r\n", LoopCount == -1 ? "Forever" : (LoopCount + 1).ToString());
-            sb.AppendFormat("FPS:{0}\r\n", Fps);
+            sb.AppendFormat("FPS:{0}\r\n", FPS);
             return sb.ToString();
         }
     }
