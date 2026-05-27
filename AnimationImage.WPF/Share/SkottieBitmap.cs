@@ -71,10 +71,10 @@ namespace AnimationImage.Avalonia
 
         public override void AttachTarget(FrameworkElement target)
         {
-            base.AttachTarget(target);
             this.UpdateSize(target);
             this.Frame = CreateNewFrame(Info.Width, Info.Height);
             target.SizeChanged += OnSizeChanged;
+            base.AttachTarget(target);
         }
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
@@ -146,7 +146,7 @@ namespace AnimationImage.Avalonia
                         }
                     }
                 }
-           
+
 #endif
 
 #if WPF

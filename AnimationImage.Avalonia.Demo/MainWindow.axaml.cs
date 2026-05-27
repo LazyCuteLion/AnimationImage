@@ -35,7 +35,7 @@ namespace AnimationImage.Avalonia.Demo
             });
             if (file?.Count > 0)
             {
-                var bitmap = AnimatableBitmapFactory.Default.Create(file[0].Path, renderScale: 0.2);
+                var bitmap = AnimatableBitmapFactory.Default.Create(file[0].Path);
                 AnimationBehavior.SetAnimatableBitmap(view, bitmap);
             }
         }

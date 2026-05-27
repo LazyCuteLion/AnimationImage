@@ -34,7 +34,7 @@
 
   <PropertyGroup>
     <PackageId>AnimationImage.Avalonia</PackageId>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <Authors>LazySheeeep</Authors>
     <Description>
       基于 SkiaSharp 的 Avalonia 极简动图播放方案。
