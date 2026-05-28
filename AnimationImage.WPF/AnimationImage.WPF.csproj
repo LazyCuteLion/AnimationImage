@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>net6.0-windows;net8.0-windows</TargetFrameworks>
+    <TargetFrameworks>net8.0-windows</TargetFrameworks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
@@ -11,24 +11,26 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\readme.md" Pack="true" PackagePath="\" />
+    <None Include="..\nuget.readme.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="SkiaSharp" Version="3.119.2" />
     <PackageReference Include="SkiaSharp.Skottie" Version="3.119.2" />
+    <PackageReference Include="Vortice.Direct3D12" Version="3.8.3" />
   </ItemGroup>
 
   <PropertyGroup>
     <PackageId>AnimationImage.WPF</PackageId>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <Authors>LazySheeeep</Authors>
     <Description>
       基于 SkiaSharp 的 WPF 极简动图播放方案。
       支持播放 Lottie、GIF、WebP 格式。
       更高的帧率、更佳的性能、更少的内存占用。
     </Description>
-    <PackageTags>wpf;skia;lottie;gif;webp;animation</PackageTags>
+    <PackageTags>wpf;skiasharp;lottie;gif;webp;animation</PackageTags>
     <RepositoryUrl>https://github.com/LazyCuteLion/AnimationImage</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageReadmeFile>readme.md</PackageReadmeFile>
+    <PackageReadmeFile>nuget.readme.md</PackageReadmeFile>
   </PropertyGroup>
 </Project>

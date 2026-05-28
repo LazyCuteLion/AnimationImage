@@ -1,48 +1,16 @@
-# AnimationImage
+﻿# AnimationImage
 
 > **基于 SkiaSharp 的 WPF & AvaloniaUI 极简动图播放方案**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Repo-blue?logo=github)](https://github.com/LazyCuteLion/AnimationImage)
+
 
 ## 🚀 简介
 
-**AnimationImage** 支持播放 **Lottie(JSON)**、**GIF** 和 **WebP** 格式，相比现有方案，具有更高的帧率、更佳的渲染性能以及更低的内存占用。
+**AnimationImage**支持播放 **Lottie(JSON)**、**GIF** 和 **WebP** 格式，相比现有方案，具有更高的帧率、更佳的渲染性能以及更低的内存占用。
 
-### ✨ 核心特性
-
-*   **多平台支持**：支持 WPF 和 AvaloniaUI（**目前未对移动端进行测试**）。
-*   **多格式兼容**：支持 Lottie(.json)，GIF、WebP 等格式动图（未来计划支持Apng）。
-*   **极致性能**：动图利用SKCodec进行流式加载，逐帧解码，极低的内存占用。Lottie则利用Skottie，极致流畅。
-*   **动画驱动**：使用框架动画库**Animation**，相比**定时器**方案，帧率更高更稳定。WPF可以设置更高的帧率，而非默认的60FPS。
-*   **极简API**：通过附加属性或标记扩展，以原生**Image**控件作为渲染器。
-*   **灵活控制**：默认自动播放，可设置循环次数，提供控制命令用于绑定。
-
----
-
-性能表现：  
-1、Lottie动画  
-![wpf-lottie](Images/wpf-lottie.webp)  
-![avalonia-lottie](Images/avalonia-lottie.webp)  
-
-2、GIF 800x600 50FPS  
-![wpf-gif-800x600-50fps](Images/wpf-gif-800x600-50fps.webp)  
-![avalonia-gif-800x600-50fps](Images/avalonia-gif-800x600-50fps.webp)  
-
-## 📦 安装
-
-通过 NuGet 包管理器安装：
-
-```bash
-# WPF 版本
-Install-Package AnimationImage.WPF
-
-# Avalonia 版本
-Install-Package AnimationImage.Avalonia
-```
-
----
-
-## 使用方法（参考2个Demo项目）  
+## 🚝[使用方法](https://github.com/LazyCuteLion/AnimationImage)  
 
 WPF：`xmlns:ani="clr-namespace:AnimationImage.WPF;assembly=AnimationImage.WPF"`  
 
@@ -89,3 +57,23 @@ Avalonia（用法与WPF基本相同）：`xmlns:ani="using:AnimationImage.Avalon
 <Image ani:AnimationBehavior.AnimatableBitmap="[path]"
        ani:AnimationBehavior.LoopCount="-1" />
 ```
+
+## ✈️更新日志
+v1.0.5  
+👏 重大变更：引入`Vortice.Direct3D12`，为Lottie提供显卡加速功能，对于复杂场景的动画有很大的提升！默认已开启，也可以通过`UseGPU`关闭。 
+
+v1.0.4  
+🐛 修复：修复Lottie文件不能自动播放的问题。
+
+v1.0.3  
+✨ 优化：对于Lottie文件，增加了设置渲染比例选项。  
+🚨 重大变更：预加载功能有较大缺陷，暂时取消。
+
+v1.0.2  
+✨ 优化：AI生成的代码不是很靠谱，重新优化预加载算法。
+
+v1.0.1  
+🐛 修复：修复命令状态没有即时更新的问题。
+
+v1.0.0  
+🚀 发布：初始版本正式发布。

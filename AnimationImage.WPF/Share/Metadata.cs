@@ -51,7 +51,7 @@ namespace AnimationImage.Core
             sb.AppendFormat("Size:({0},{1})\r\n", PixelWidth, PixelHeight);
             sb.AppendFormat("FrameCount:{0}\r\n", FrameCount);
             sb.AppendFormat("Duration:{0:F2}(ms)\r\n", Duration);
-            sb.AppendFormat("LoopCount:{0}\r\n", LoopCount == -1 ? "Forever" : (LoopCount + 1).ToString());
+            sb.AppendFormat("LoopCount:{0}\r\n", LoopCount == -1 ? "Forever" : LoopCount.ToString());
             sb.AppendFormat("FPS:{0}\r\n", FPS);
             return sb.ToString();
         }

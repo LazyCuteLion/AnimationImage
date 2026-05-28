@@ -2,6 +2,8 @@ using AnimationImage.Core;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Platform.Storage;
@@ -9,6 +11,8 @@ using Avalonia.Rendering;
 using Avalonia.Threading;
 using SkiaSharp;
 using System;
+using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace AnimationImage.Avalonia.Demo
 {
@@ -35,7 +39,9 @@ namespace AnimationImage.Avalonia.Demo
             });
             if (file?.Count > 0)
             {
-                var bitmap = AnimatableBitmapFactory.Default.Create(file[0].Path);
+                //查看启用显卡加速的影响
+                cbUseGPU.IsChecked = !cbUseGPU.IsChecked;
+                var bitmap = AnimatableBitmapFactory.Default.Create(new AnimatableBitmapOptions(file[0].Path, useGPU: cbUseGPU.IsChecked ?? false));
                 AnimationBehavior.SetAnimatableBitmap(view, bitmap);
             }
         }

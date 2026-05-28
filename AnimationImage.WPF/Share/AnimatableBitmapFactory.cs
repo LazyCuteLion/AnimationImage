@@ -30,14 +30,14 @@ namespace AnimationImage.Avalonia
             _defaultCreator = creator;
         }
 
-        public AnimatableBitmap Create(string path, int preloadCount = PreloadOptions.Disable, double renderScale = 1.0)
+        public AnimatableBitmap Create(string path)
         {
-            return this.Create(new AnimatableBitmapOptions(path, preloadCount, renderScale));
+            return this.Create(new AnimatableBitmapOptions(path));
         }
 
-        public AnimatableBitmap Create(Uri source, int preloadCount = PreloadOptions.Disable, double renderScale = 1.0)
+        public AnimatableBitmap Create(Uri source)
         {
-            return this.Create(new AnimatableBitmapOptions(source, preloadCount, renderScale));
+            return this.Create(new AnimatableBitmapOptions(source));
         }
 
         public AnimatableBitmap Create(AnimatableBitmapOptions options)

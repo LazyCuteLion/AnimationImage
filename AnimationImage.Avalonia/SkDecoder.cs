@@ -14,11 +14,11 @@ namespace AnimationImage.Avalonia
             if (disposing)
             {
                 Codec.Dispose();
-                foreach (var cache in FrameCache.Values.ToArray())
+                foreach (var cache in _frameCache.Values.ToArray())
                 {
                     cache?.Dispose();
                 }
-                FrameCache.Clear();
+                _frameCache.Clear();
             }
             IsDisposed = true;
         }
@@ -34,7 +34,7 @@ namespace AnimationImage.Avalonia
             var result = FrameData.Empty;
             try
             {
-                if (data.Index == FrameCount - 1)
+                if (data.Index == _frameCount - 1)
                 {
                     data = new FrameData(0, data.Bitmap);
                 }
@@ -45,7 +45,7 @@ namespace AnimationImage.Avalonia
                     var codecInfo = AnimatableBitmap.CreateDecodeInfo(Codec.Info.Size.Width, Codec.Info.Size.Height);
                     var canvas = data.Bitmap?.ToSKBitmap() ?? this.CreateNewFrame(codecInfo);
                     var r = SKCodecResult.Unimplemented;
-                    lock (CodecLocker)
+                    lock (_codecLocker)
                     {
                         r = Codec.GetPixels(codecInfo, canvas.GetPixels(), new SKCodecOptions(index, -1));
                     }
@@ -92,7 +92,7 @@ namespace AnimationImage.Avalonia
             if (data.Index == index)
                 return data;
 
-            if (data.Index == FrameCount - 1)
+            if (data.Index == _frameCount - 1)
             {
                 data = new FrameData(0, data.Bitmap);
             }
@@ -103,7 +103,7 @@ namespace AnimationImage.Avalonia
                 var codecInfo = AnimatableBitmap.CreateDecodeInfo(Codec.Info.Size.Width, Codec.Info.Size.Height);
                 var canvas = data.Bitmap?.ToSKBitmap() ?? this.CreateNewFrame(codecInfo);
                 var r = SKCodecResult.Unimplemented;
-                lock (CodecLocker)
+                lock (_codecLocker)
                 {
                     r = Codec.GetPixels(codecInfo, canvas.GetPixels(), new SKCodecOptions(index, -1));
                 }
@@ -123,7 +123,7 @@ namespace AnimationImage.Avalonia
                 //独立帧
                 if (requiredFrame == -1)
                 {
-                    lock (CodecLocker)
+                    lock (_codecLocker)
                     {
                         result = Codec.GetPixels(codecInfo, canvas.GetPixels(), new SKCodecOptions(index, -1));
                     }
@@ -137,7 +137,7 @@ namespace AnimationImage.Avalonia
                     if (requiredFrame < priorFrame)
                         priorFrame = -1;
 
-                    lock (CodecLocker)
+                    lock (_codecLocker)
                     {
                         result = Codec.GetPixels(codecInfo, canvas.GetPixels(), new SKCodecOptions(index, priorFrame));
                     }

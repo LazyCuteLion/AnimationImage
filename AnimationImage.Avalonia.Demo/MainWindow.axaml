@@ -1,12 +1,12 @@
-<Window x:Class="AnimationImage.Avalonia.Demo.MainWindow"
+﻿<Window x:Class="AnimationImage.Avalonia.Demo.MainWindow"
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ani="using:AnimationImage.Avalonia"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         Title="AnimationImage.Avalonia.Demo"
-        Height="400"
-        Width="600"
+        Height="720"
+        Width="1280"
         WindowStartupLocation="Manual"
         mc:Ignorable="d">
     <Grid Background="Green">
@@ -29,20 +29,24 @@
                    VerticalAlignment="Top"
                    x:DataType="ani:AnimatableBitmap"
                    DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
-                   Text="{Binding TPS,StringFormat={}{0:F1}}" />
+                   Text="{Binding TPS,StringFormat={}{0:F1}}" 
+                   Foreground="White"/>
         <TextBlock Margin="10"
                    HorizontalAlignment="Right"
                    VerticalAlignment="Top"
                    x:DataType="ani:AnimatableBitmap"
                    DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
                    Text="{Binding Metadata}"
-                   TextWrapping="Wrap" />
+                   TextWrapping="Wrap" 
+                   Padding="10"
+                   Foreground="White"
+                   Background="#7D000000"/>
 
         <StackPanel Margin="30" VerticalAlignment="Bottom">
                 <Grid MinWidth="300">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
-                        <ColumnDefinition Width="50" />
+                        <ColumnDefinition Width="80" />
                     </Grid.ColumnDefinitions>
                    
                     <Slider LargeChange="1"
@@ -56,6 +60,8 @@
                     <TextBlock Grid.Column="1"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Center"
+                               Foreground="White"
+                               Margin="10,0,0,0"
                                Text="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimationTime),StringFormat={}{0:F1}}" />
                 </Grid>
             </StackPanel>
@@ -64,7 +70,9 @@
                     VerticalAlignment="Bottom"
                     Orientation="Horizontal"
                     DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
-                    x:DataType="ani:AnimatableBitmap">
+                    x:DataType="ani:AnimatableBitmap"
+                    Background="#7DFFFFFF">
+            <CheckBox x:Name="cbUseGPU" Content="显卡加速" VerticalAlignment="Center" Margin="10,0,0,0"/>
             <Button Margin="10"
                     Click="Button_Click"
                     Content="Open" />

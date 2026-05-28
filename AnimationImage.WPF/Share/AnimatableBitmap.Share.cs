@@ -41,13 +41,13 @@ namespace AnimationImage.Avalonia
 {
 	public abstract partial class AnimatableBitmap : INotifyPropertyChanged
 	{
-		protected Stream Stream;
+		protected Stream _stream;
 		protected double CurrentTime { get; private set; }
 		protected FrameworkElement Target;
 		
-		private bool WaitForResume = false;
-		private Stopwatch TPSwatcher;
-		private int TPSCount;
+		private bool _waitForResume = false;
+		private Stopwatch _tpsWatcher;
+		private int _tpsCount;
 
 		private WriteableBitmap _frame;
 		public WriteableBitmap Frame
@@ -109,15 +109,15 @@ namespace AnimationImage.Avalonia
 				using var rsp = client.GetAsync(source).Result;
 				if (rsp?.IsSuccessStatusCode == true)
 				{
-					Stream = new MemoryStream();
-					rsp.Content.CopyToAsync(Stream).Wait();
-					Stream.Position = 0;
+					_stream = new MemoryStream();
+					rsp.Content.CopyToAsync(_stream).Wait();
+					_stream.Position = 0;
 				}
 			}
 #if WPF
 			else if (source.Scheme == "pack")
 			{
-				Stream = Application.GetResourceStream(source)?.Stream
+				_stream = Application.GetResourceStream(source)?.Stream
 					  ?? Application.GetContentStream(source)?.Stream
 					  ?? Application.GetRemoteStream(source)?.Stream;
 			}
@@ -126,15 +126,15 @@ namespace AnimationImage.Avalonia
 #if AVALONIA
 			else if (source.Scheme == "avares")
 			{
-				Stream = AssetLoader.Open(source);
+				_stream = AssetLoader.Open(source);
 			}
 #endif
 			else if (source.IsFile)
 			{
-				Stream = File.OpenRead(source.LocalPath);
+				_stream = File.OpenRead(source.LocalPath);
 			}
 
-			if (Stream == null)
+			if (_stream == null)
 			{
 				throw new IOException($"读取资源失败：{source}");
 			}
@@ -145,8 +145,8 @@ namespace AnimationImage.Avalonia
 
 			if (EnableTPS)
 			{
-				TPSwatcher = Stopwatch.StartNew();
-				TPSCount = 0;
+				_tpsWatcher = Stopwatch.StartNew();
+				_tpsCount = 0;
 			}
 		}
 
@@ -155,17 +155,17 @@ namespace AnimationImage.Avalonia
 			this.CurrentTime = milliseconds;
 			if (EnableTPS)
 			{
-				TPSCount++;
-				if (TPSwatcher.ElapsedMilliseconds >= 1000)
+				_tpsCount++;
+				if (_tpsWatcher.ElapsedMilliseconds >= 1000)
 				{
-					this.TPS = TPSCount * 1000.0 / TPSwatcher.ElapsedMilliseconds;
-					TPSwatcher.Restart();
-					TPSCount = 0;
+					this.TPS = _tpsCount * 1000.0 / _tpsWatcher.ElapsedMilliseconds;
+					_tpsWatcher.Restart();
+					_tpsCount = 0;
 				}
 			}
 		}
 
-		protected bool IsDisposed;
+		protected bool _disposed;
 		public void Dispose()
 		{
 			Dispose(true);

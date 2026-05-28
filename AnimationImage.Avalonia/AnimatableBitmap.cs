@@ -25,13 +25,13 @@ namespace AnimationImage.Avalonia
     {
         protected virtual void Dispose(bool disposing)
         {
-            if (IsDisposed)
+            if (_disposed)
                 return;
             if (disposing)
             {
                 //释放托管资源
-                AnimationToken?.Cancel();
-                AnimationToken?.Dispose();
+                _animationToken?.Cancel();
+                _animationToken?.Dispose();
 
                 if (Target != null)
                 {
@@ -45,12 +45,12 @@ namespace AnimationImage.Avalonia
 
                 this.Frame?.Dispose();
 
-                Stream?.Dispose();
+                _stream?.Dispose();
 
-                TPSwatcher?.Stop();
+                _tpsWatcher?.Stop();
             }
             //释放非托管资源
-            IsDisposed = true;
+            _disposed = true;
         }
 
         public virtual async void AttachTarget(FrameworkElement target)
@@ -88,11 +88,11 @@ namespace AnimationImage.Avalonia
                 if (e.NewValue?.Equals(false) == false && State == AnimationState.Playing)
                 {
                     this.PauseAnimation();
-                    WaitForResume = true;
+                    _waitForResume = true;
                 }
-                else if (WaitForResume)
+                else if (_waitForResume)
                 {
-                    WaitForResume = false;
+                    _waitForResume = false;
                     this.BeginAnimation();
                 }
             }
@@ -103,31 +103,31 @@ namespace AnimationImage.Avalonia
                     if (state == WindowState.Minimized && State == AnimationState.Playing)
                     {
                         this.PauseAnimation();
-                        WaitForResume = true;
+                        _waitForResume = true;
                     }
-                    else if (WaitForResume)
+                    else if (_waitForResume)
                     {
-                        WaitForResume = false;
+                        _waitForResume = false;
                         this.BeginAnimation();
                     }
                 }
             }
         }
 
-        private Animation Animation;
-        private CancellationTokenSource AnimationToken;
+        private Animation _animation;
+        private CancellationTokenSource _animationToken;
 
         private void CreateAnimation()
         {
             var loopCount = AnimationBehavior.GetLoopCount(Target) ?? (Metadata.LoopCount >= 0 ? Metadata.LoopCount + 1 : Metadata.LoopCount);
-            Animation = new Animation()
+            _animation = new Animation()
             {
                 Duration = TimeSpan.FromMilliseconds(Metadata.Duration),
                 IterationCount = new IterationCount((ulong)loopCount),
             };
             if (CurrentTime == 0)
             {
-                Animation.Children.Add(new KeyFrame
+                _animation.Children.Add(new KeyFrame
                 {
                     Cue = new Cue(0.0),
                     Setters =
@@ -135,7 +135,7 @@ namespace AnimationImage.Avalonia
                             new Setter(AnimationBehavior.AnimationTimeProperty, 0.0)
                         }
                 });
-                Animation.Children.Add(new KeyFrame
+                _animation.Children.Add(new KeyFrame
                 {
                     Cue = new Cue(1.0),
                     Setters =
@@ -148,7 +148,7 @@ namespace AnimationImage.Avalonia
             {
                 //当前时间=》结束时间&归零=》当前时间
                 var currentTime = CurrentTime;
-                Animation.Children.Add(new KeyFrame()
+                _animation.Children.Add(new KeyFrame()
                 {
                     Cue = new Cue(0.0),
                     Setters =
@@ -157,7 +157,7 @@ namespace AnimationImage.Avalonia
                         }
                 });
                 var timeNode = (Metadata.Duration - currentTime) / Metadata.Duration;
-                Animation.Children.Add(new KeyFrame()
+                _animation.Children.Add(new KeyFrame()
                 {
                     Cue = new Cue(timeNode),
                     Setters =
@@ -165,7 +165,7 @@ namespace AnimationImage.Avalonia
                            new Setter(AnimationBehavior.AnimationTimeProperty, Metadata.Duration)
                         }
                 });
-                Animation.Children.Add(new KeyFrame()
+                _animation.Children.Add(new KeyFrame()
                 {
                     Cue = new Cue(timeNode),
                     Setters =
@@ -173,7 +173,7 @@ namespace AnimationImage.Avalonia
                            new Setter(AnimationBehavior.AnimationTimeProperty, 0.0)
                         }
                 });
-                Animation.Children.Add(new KeyFrame()
+                _animation.Children.Add(new KeyFrame()
                 {
                     Cue = new Cue(1.0),
                     Setters =
@@ -189,23 +189,23 @@ namespace AnimationImage.Avalonia
             if (!IsAnimatable
                 || State == AnimationState.Playing
                 || State == AnimationState.Error
-                || AnimationToken != null)
+                || _animationToken != null)
                 return;
 
             try
             {
-                AnimationToken = new CancellationTokenSource();
+                _animationToken = new CancellationTokenSource();
                 this.State = AnimationState.Playing;
                 this.UpdateCommandState();
                 this.CreateAnimation();
-                await Animation.RunAsync(Target, AnimationToken.Token);
-                if (!AnimationToken.IsCancellationRequested)
+                await _animation.RunAsync(Target, _animationToken.Token);
+                if (!_animationToken.IsCancellationRequested)
                 {
                     State = AnimationState.Completed;//播放到自然结束
                     AnimationBehavior.SetAnimationTime(Target, Metadata.Duration);
                 }
-                AnimationToken.Dispose();
-                AnimationToken = null;
+                _animationToken.Dispose();
+                _animationToken = null;
             }
             catch { }
         }
@@ -216,7 +216,7 @@ namespace AnimationImage.Avalonia
                 return;
 
             var currentTime = this.CurrentTime;
-            AnimationToken?.Cancel();
+            _animationToken?.Cancel();
             this.State = AnimationState.Paused;
             this.UpdateCommandState();
             AnimationBehavior.SetAnimationTime(Target, currentTime);
@@ -225,7 +225,7 @@ namespace AnimationImage.Avalonia
 
         protected virtual void StopAnimation()
         {
-            AnimationToken?.Cancel();
+            _animationToken?.Cancel();
             this.State = AnimationState.Stopped;
             this.UpdateCommandState();
             AnimationBehavior.SetAnimationTime(Target, 0.0);
