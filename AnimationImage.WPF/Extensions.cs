@@ -171,10 +171,10 @@ namespace AnimationImage.Core
 
         public static bool IsInWindowViewport(this FrameworkElement element)
         {
-            if (element == null 
+            if (element == null
                 || !element.IsVisible
-                || element.ActualWidth == 0 
-                || element.ActualHeight == 0) 
+                || element.ActualWidth == 0
+                || element.ActualHeight == 0)
                 return false;
 
             Window window = Window.GetWindow(element);
@@ -223,6 +223,17 @@ namespace AnimationImage.Core
             }
 
             return true;
+        }
+
+
+        public static SKRectI ToSKRectI(this SKRect rect)
+        {
+            return new SKRectI((int)rect.Left, (int)rect.Top, (int)Math.Ceiling(rect.Right), (int)Math.Ceiling(rect.Bottom));
+        }
+
+        public static Int32Rect ToInt32Rect(this SKRectI rect)
+        {
+            return new Int32Rect(rect.Left, rect.Top, rect.Width, rect.Height);
         }
     }
 }

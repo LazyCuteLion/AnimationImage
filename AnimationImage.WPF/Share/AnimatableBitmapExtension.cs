@@ -34,13 +34,15 @@ namespace AnimationImage.Avalonia
         [TypeConverter(typeof(UriTypeConverter))]
         public Uri Source { get; set; }
 
-        public int PreloadCount { get; set; } = PreloadOptions.Disable;
+        public int PreloadCount { get; set; } = AnimatableBitmapOptions.Default.PreloadCount;
 
-        public double RenderScale { get; set; } = 1.0;
+        public double RenderScale { get; set; } = AnimatableBitmapOptions.Default.RenderScale;
+
+        public bool UseGPU { get; set; } = AnimatableBitmapOptions.Default.UseGPU;
 
         public AnimatableBitmapOptions ToOptions()
         {
-            return new AnimatableBitmapOptions(this.Source, this.PreloadCount, this.RenderScale);
+            return new AnimatableBitmapOptions(this.Source, this.PreloadCount, this.RenderScale, this.UseGPU);
         }
 
         public AnimatableBitmapExtension(Uri source)

@@ -35,17 +35,18 @@ namespace AnimationImage.WPF.Demo
             }
         }
 
+
         protected override void OnRender(DrawingContext drawingContext)
         {
-            var text = $"FPS:{_fps:F1}";
+            var text = $"CompositionTarget.Rendering:{_fps:F1}";
             var formattedText = new FormattedText(
-                text,
-                System.Globalization.CultureInfo.CurrentCulture,
-                FlowDirection.LeftToRight,
-                new Typeface("Consolas"),
-                12,
-                Brushes.White,
-                VisualTreeHelper.GetDpi(this).PixelsPerDip);
+                                                   text,
+                                                   System.Globalization.CultureInfo.CurrentCulture,
+                                                   FlowDirection.LeftToRight,
+                                                   new Typeface("Consolas"),
+                                                   12,
+                                                   Brushes.White,
+                                                   VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
             drawingContext.DrawText(formattedText, new Point(10, 10));
         }

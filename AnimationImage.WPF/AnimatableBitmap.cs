@@ -60,11 +60,11 @@ namespace AnimationImage.WPF
                 if (win.WindowState == WindowState.Minimized && State == AnimationState.Playing)
                 {
                     this.PauseAnimation();
-                    WaitForResume = true;
+                    _waitForResume = true;
                 }
-                else if (WaitForResume)
+                else if (_waitForResume)
                 {
-                    WaitForResume = false;
+                    _waitForResume = false;
                     this.BeginAnimation();
                 }
             }
@@ -76,25 +76,25 @@ namespace AnimationImage.WPF
             if (e.NewValue.Equals(false) && State == AnimationState.Playing)
             {
                 this.PauseAnimation();
-                WaitForResume = true;
+                _waitForResume = true;
             }
-            else if (WaitForResume)
+            else if (_waitForResume)
             {
-                WaitForResume = false;
+                _waitForResume = false;
                 this.BeginAnimation();
             }
         }
 
         protected virtual void Dispose(bool disposing)
         {
-            if (IsDisposed)
+            if (_disposed)
                 return;
             if (disposing)
             {
-                if (Storyboard != null)
+                if (_storyboard != null)
                 {
-                    Storyboard.Completed -= OnCompleted;
-                    Storyboard.Stop();
+                    _storyboard.Completed -= OnCompleted;
+                    _storyboard.Stop();
                 }
 
                 if (Target != null)
@@ -110,21 +110,21 @@ namespace AnimationImage.WPF
 
                 this.Frame = null;
 
-                Stream?.Dispose();
+                _stream?.Dispose();
 
-                TPSwatcher?.Stop();
+                _tpsWatcher?.Stop();
             }
-            IsDisposed = true;
+            _disposed = true;
         }
 
-        protected Storyboard Storyboard;
+        protected Storyboard _storyboard;
         private void CreateAnimation()
         {
             var repeatBehavior = AnimationBehavior.GetRepeatBehavior(Target) ??
                                 (this.Metadata.LoopCount == -1
                                   ? RepeatBehavior.Forever
                                   : new RepeatBehavior(this.Metadata.LoopCount + 1));
-            Storyboard = new Storyboard()
+            _storyboard = new Storyboard()
             {
                 RepeatBehavior = repeatBehavior,
                 FillBehavior = FillBehavior.Stop
@@ -132,10 +132,10 @@ namespace AnimationImage.WPF
             var animation = new DoubleAnimation(0, this.Metadata.Duration, TimeSpan.FromMilliseconds(this.Metadata.Duration));
             Storyboard.SetTargetProperty(animation, new PropertyPath(AnimationBehavior.AnimationTimeProperty));
             Storyboard.SetTarget(animation, Target);
-            Storyboard.Children.Add(animation);
+            _storyboard.Children.Add(animation);
             var forceFPS = AnimationBehavior.GetForceFPS(Target);
-            Timeline.SetDesiredFrameRate(Storyboard, forceFPS > 0 ? forceFPS : this.Metadata.FPS);
-            Storyboard.Completed += OnCompleted;
+            Timeline.SetDesiredFrameRate(_storyboard, forceFPS > 0 ? forceFPS : this.Metadata.FPS);
+            _storyboard.Completed += OnCompleted;
         }
 
         protected virtual void OnCompleted(object? sender, EventArgs e)
@@ -158,31 +158,31 @@ namespace AnimationImage.WPF
                 CurrentTime = 0;
             }
 
-            if (State == AnimationState.Paused && Storyboard != null)
+            if (State == AnimationState.Paused && _storyboard != null)
             {
-                Storyboard.Resume();
+                _storyboard.Resume();
                 State = AnimationState.Playing;
                 return;
             }
 
-            if (Storyboard == null)
+            if (_storyboard == null)
                 this.CreateAnimation();
             else
             {
-                Storyboard.RepeatBehavior = AnimationBehavior.GetRepeatBehavior(Target) ??
+                _storyboard.RepeatBehavior = AnimationBehavior.GetRepeatBehavior(Target) ??
                                             (this.Metadata.LoopCount == -1
                                               ? RepeatBehavior.Forever
                                               : new RepeatBehavior(this.Metadata.LoopCount + 1));
 
                 var forceFPS = AnimationBehavior.GetForceFPS(Target);
-                Timeline.SetDesiredFrameRate(Storyboard, forceFPS > 0 ? forceFPS : this.Metadata.FPS);
+                Timeline.SetDesiredFrameRate(_storyboard, forceFPS > 0 ? forceFPS : this.Metadata.FPS);
             }
 
-            Storyboard.Begin();
+            _storyboard.Begin();
 
             if (CurrentTime > 0)
             {
-                Storyboard.Seek(TimeSpan.FromMilliseconds(CurrentTime));
+                _storyboard.Seek(TimeSpan.FromMilliseconds(CurrentTime));
             }
 
             this.State = AnimationState.Playing;
@@ -193,7 +193,7 @@ namespace AnimationImage.WPF
         {
             if (State != AnimationState.Playing)
                 return;
-            Storyboard?.Pause();
+            _storyboard?.Pause();
             this.State = AnimationState.Paused;
             this.UpdateCommandState();
         }
@@ -205,7 +205,7 @@ namespace AnimationImage.WPF
                 Target.BeginAnimation(AnimationBehavior.AnimationTimeProperty, null);
                 AnimationBehavior.SetAnimationTime(Target, 0);
             }
-            Storyboard?.Stop();
+            _storyboard?.Stop();
             this.State = AnimationState.Stopped;
             this.UpdateCommandState();
         }

@@ -41,18 +41,18 @@ namespace AnimationImage.WPF
 
     internal partial class SkDecoder : IDisposable
     {
-        private readonly int FrameCount;
+        private readonly int _frameCount;
         public int PreloadCount { get; private set; }
-        private readonly object CodecLocker = new();
-        private ConcurrentDictionary<int, WriteableBitmap> FrameCache = new();
+        private readonly object _codecLocker = new();
+        private ConcurrentDictionary<int, WriteableBitmap> _frameCache = new();
 
         public SKCodec Codec { get; private set; }
 
         public SkDecoder(Stream stream, int preloadCount)
         {
             Codec = SKCodec.Create(stream);
-            FrameCount = Codec.FrameCount;
-            PreloadCount = preloadCount == PreloadOptions.Full ? FrameCount : preloadCount;
+            _frameCount = Codec.FrameCount;
+            PreloadCount = preloadCount == PreloadOptions.Full ? _frameCount : preloadCount;
 
             var first = this.DecodeFrame(0, new FrameData(1, null));
 
@@ -62,7 +62,7 @@ namespace AnimationImage.WPF
             }
             else
             {
-                FrameCache.TryAdd(0, first.Bitmap.TryFreeze());
+                _frameCache.TryAdd(0, first.Bitmap.TryFreeze());
             }
         }
 
@@ -76,18 +76,18 @@ namespace AnimationImage.WPF
             if (data.Index == index)
                 return data;
 
-            if (FrameCache.TryGetValue(index, out var bitmap))
+            if (_frameCache.TryGetValue(index, out var bitmap))
             {
                 return new FrameData(index, bitmap);
             }
 
             var result = this.Decode(index, data);
-            if (!result.IsEmpty && PreloadCount >= FrameCount)
+            if (!result.IsEmpty && PreloadCount >= _frameCount)
             {
-                if (!FrameCache.ContainsKey(index))
+                if (!_frameCache.ContainsKey(index))
                 {
                     result.Bitmap.TryFreeze();
-                    FrameCache.TryAdd(index, result.Bitmap);
+                    _frameCache.TryAdd(index, result.Bitmap);
                 }
             }
 
@@ -96,21 +96,21 @@ namespace AnimationImage.WPF
 
         internal Task PreloadAsync()
         {
-            if (PreloadCount >= FrameCount)
+            if (PreloadCount >= _frameCount)
             {
-                if (FrameCache.Count < FrameCount)
+                if (_frameCache.Count < _frameCount)
                 {
-                    var temp = new FrameData(0, FrameCache[0]);
+                    var temp = new FrameData(0, _frameCache[0]);
                     return Task.Run(() =>
                     {
-                        for (var i = 1; i < FrameCount; i++)
+                        for (var i = 1; i < _frameCount; i++)
                         {
-                            if (FrameCache.ContainsKey(i))
+                            if (_frameCache.ContainsKey(i))
                                 continue;
                             temp = this.DecodeFrame(i, temp);
                             if (!temp.IsEmpty)
                             {
-                                FrameCache.TryAdd(temp.Index, temp.Bitmap.TryFreeze());
+                                _frameCache.TryAdd(temp.Index, temp.Bitmap.TryFreeze());
                             }
                         }
                     });

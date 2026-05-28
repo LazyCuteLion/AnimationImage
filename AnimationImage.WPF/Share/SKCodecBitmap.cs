@@ -25,18 +25,18 @@ namespace AnimationImage.Avalonia
     internal class SKCodecBitmap : AnimatableBitmap
     {
         #region 字段
-        private readonly SkDecoder Decoder;
-        private int FrameCount => Decoder.Codec?.FrameCount ?? 0;
-        private readonly List<double> Durations = new();
-        private int CurrentIndex = -1;
-        private bool IsLoading = false;
+        private readonly SkDecoder _decoder;
+        private int FrameCount => _decoder.Codec?.FrameCount ?? 0;
+        private readonly List<double> _durations = new();
+        private int _currentIndex = -1;
+        private bool _isLoading = false;
         #endregion
 
         public SKCodecBitmap(AnimatableBitmapOptions options) : base(options)
         {
             //暂时先只处理本地文件
-            Decoder = new SkDecoder(Stream, options.PreloadCount);
-            if (Decoder.Codec == null)
+            _decoder = new SkDecoder(_stream, options.PreloadCount);
+            if (_decoder.Codec == null)
             {
                 this.State = AnimationState.Error;
                 return;
@@ -48,40 +48,40 @@ namespace AnimationImage.Avalonia
             {
                 for (int i = 0; i < FrameCount; i++)
                 {
-                    var info = Decoder.Codec.FrameInfo[i];
+                    var info = _decoder.Codec.FrameInfo[i];
                     duration += info.Duration;
-                    Durations.Add(duration);
+                    _durations.Add(duration);
                 }
             }
 
-            this.Metadata = new Metadata(Decoder.Codec.Info.Width,
-                                         Decoder.Codec.Info.Height,
+            this.Metadata = new Metadata(_decoder.Codec.Info.Width,
+                                         _decoder.Codec.Info.Height,
                                          duration,
                                          FrameCount,
                                          duration > 0 ? (int)(FrameCount * 1000 / duration) : 0,
-                                         Decoder.Codec.RepetitionCount);
+                                         _decoder.Codec.RepetitionCount);
 
-            var data = Decoder.Get(0);
+            var data = _decoder.Get(0);
             this.Frame = !data.IsEmpty ? data.Bitmap : CreateNewFrame(Metadata.PixelWidth, Metadata.PixelHeight);
-            CurrentIndex = data.Index;
+            _currentIndex = data.Index;
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (IsDisposed)
+            if (_disposed)
                 return;
             if (disposing)
             {
-                Decoder.Dispose();
-                Durations.Clear();
+                _decoder.Dispose();
+                _durations.Clear();
             }
             base.Dispose(disposing);
         }
 
         public override bool IsAnimatable => base.IsAnimatable
-                            && Decoder.Codec != null
+                            && _decoder.Codec != null
                             && FrameCount > 0
-                            && !IsLoading;
+                            && !_isLoading;
 
         /// <summary>
         /// 跳转到指定时间点（毫秒）
@@ -89,15 +89,15 @@ namespace AnimationImage.Avalonia
         /// <param name="milliseconds"></param>
         internal override void SeekTime(double milliseconds)
         {
-            if (!this.IsAnimatable || IsLoading)
+            if (!this.IsAnimatable || _isLoading)
                 return;
             var index = TimeToIndex(milliseconds);
             try
             {
-                if (index < 0 || index > FrameCount - 1 || index == CurrentIndex)
+                if (index < 0 || index > FrameCount - 1 || index == _currentIndex)
                     return;
 
-                var data = Decoder.Get(index, new FrameData(CurrentIndex, this.Frame));
+                var data = _decoder.Get(index, new FrameData(_currentIndex, this.Frame));
                 if (!data.IsEmpty && data.Bitmap != this.Frame)
                 {
                     this.Frame = data.Bitmap;
@@ -109,7 +109,7 @@ namespace AnimationImage.Avalonia
             }
             finally
             {
-                CurrentIndex = index;
+                _currentIndex = index;
                 base.SeekTime(milliseconds);
             }
 
@@ -125,36 +125,36 @@ namespace AnimationImage.Avalonia
         /// <returns>帧索引</returns>
         private int TimeToIndex(double milliseconds)
         {
-            if (milliseconds == 0 || Durations.Count <= 1)
+            if (milliseconds == 0 || _durations.Count <= 1)
                 return 0;
 
             // 快速判断邻近帧，减少二分查找开销
-            var index = CurrentIndex > -1 ? CurrentIndex : 0;
-            if (index >= Durations.Count)
-                index %= Durations.Count;
+            var index = _currentIndex > -1 ? _currentIndex : 0;
+            if (index >= _durations.Count)
+                index %= _durations.Count;
 
-            if (milliseconds < Durations[index])
+            if (milliseconds < _durations[index])
             {
                 if (index == 0)
                     return 0;
-                if (index > 0 && milliseconds >= Durations[index - 1])
+                if (index > 0 && milliseconds >= _durations[index - 1])
                     return index;
-                if (index > 1 && milliseconds >= Durations[index - 2] && milliseconds < Durations[index - 1])
+                if (index > 1 && milliseconds >= _durations[index - 2] && milliseconds < _durations[index - 1])
                     return index - 1;
             }
-            else if (index < Durations.Count - 1 && milliseconds < Durations[index + 1])
+            else if (index < _durations.Count - 1 && milliseconds < _durations[index + 1])
             {
                 return index + 1;
             }
 
             // 二分查找第一个 >= milliseconds 的位置
-            index = Durations.BinarySearch(milliseconds);
+            index = _durations.BinarySearch(milliseconds);
             if (index < 0)
                 index = ~index;
             else
                 index++; // 精确匹配时，取下一个帧
 
-            if (index >= Durations.Count)
+            if (index >= _durations.Count)
                 index = 0;
 
             return index;
@@ -165,15 +165,15 @@ namespace AnimationImage.Avalonia
             if (!IsAnimatable
                || State == AnimationState.Playing
                || State == AnimationState.Error
-               || IsLoading)
+               || _isLoading)
                 return;
 
             if (State != AnimationState.Paused)
             {
-                IsLoading = true;
+                _isLoading = true;
                 this.UpdateCommandState();
-                await Decoder.PreloadAsync();
-                IsLoading = false;
+                await _decoder.PreloadAsync();
+                _isLoading = false;
                 this.UpdateCommandState();
             }
             base.BeginAnimation();

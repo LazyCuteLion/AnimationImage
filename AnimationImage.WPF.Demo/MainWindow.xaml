@@ -5,10 +5,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:local="clr-namespace:AnimationImage.WPF.Demo"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        Title="MainWindow"
-        Width="800"
-        Height="450"
-        mc:Ignorable="d">
+        Title="AnimationImage.WPF.Demo"
+        mc:Ignorable="d"
+        Width="1294"
+        Height="758">
 
     <Grid local:RenderingHelper.ShowFPS="True" Background="Green">
         <Grid>
@@ -33,24 +33,26 @@
                    Stretch="Uniform"
                    Visibility="Visible" />
 
-            <TextBlock Margin="10"
-                       HorizontalAlignment="Right"
+            <TextBlock Margin="10,30,0,0"
+                       HorizontalAlignment="Left"
                        VerticalAlignment="Top"
                        Foreground="White"
                        Text="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap).TPS, StringFormat={}{0:F1}}" />
 
             <TextBlock Margin="10"
                        HorizontalAlignment="Right"
-                       VerticalAlignment="Bottom"
+                       VerticalAlignment="Top"
                        Foreground="White"
                        Text="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap).Metadata}"
-                       TextWrapping="Wrap" />
+                       TextWrapping="Wrap" 
+                       Background="#7D000000"
+                       Padding="10"/>
 
-            <StackPanel Margin="30" VerticalAlignment="Bottom">
+            <StackPanel Margin="30,50" VerticalAlignment="Bottom">
                 <Grid MinWidth="300">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
-                        <ColumnDefinition Width="50" />
+                        <ColumnDefinition Width="80" />
                     </Grid.ColumnDefinitions>
                     <Slider LargeChange="1"
                             Maximum="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap).Metadata.Duration}"
@@ -60,11 +62,13 @@
                     <TextBlock Grid.Column="1"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Center"
+                               Foreground="White"
+                               Margin="10,0,0,0"
                                Text="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimationTime), StringFormat={}{0:F1}}" />
                 </Grid>
             </StackPanel>
 
-            <StackPanel HorizontalAlignment="Left"
+            <StackPanel HorizontalAlignment="Right"
                         VerticalAlignment="Bottom"
                         DataContext="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
                         Orientation="Horizontal">

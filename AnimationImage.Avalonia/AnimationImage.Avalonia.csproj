@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\readme.md" Pack="true" PackagePath="\" />
+    <None Include="..\nuget.readme.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   
   <ItemGroup>
@@ -26,6 +27,7 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.1" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.1" />
     <PackageReference Include="SkiaSharp.Skottie" Version="3.119.2" />
+    <PackageReference Include="Vortice.Direct3D12" Version="3.8.3" />
     <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.1">
       <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
@@ -34,17 +36,17 @@
 
   <PropertyGroup>
     <PackageId>AnimationImage.Avalonia</PackageId>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <Authors>LazySheeeep</Authors>
     <Description>
-      基于 SkiaSharp 的 Avalonia 极简动图播放方案。
+      基于 SkiaSharp 的 AvaloniaUI 极简动图播放方案。
       支持播放 Lottie、GIF、WebP 格式。
       更高的帧率、更佳的性能、更少的内存占用。
     </Description>
-    <PackageTags>Avalonia;skia;lottie;gif;webp;animation</PackageTags>
+    <PackageTags>avalonia;skiasharp;lottie;gif;webp;animation</PackageTags>
     <RepositoryUrl>https://github.com/LazyCuteLion/AnimationImage</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageReadmeFile>readme.md</PackageReadmeFile>
+    <PackageReadmeFile>nuget.readme.md</PackageReadmeFile>
   </PropertyGroup>
 
 </Project>

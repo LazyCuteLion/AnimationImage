@@ -14,7 +14,7 @@ namespace AnimationImage.WPF
             if (disposing)
             {
                 Codec.Dispose();
-                FrameCache.Clear();
+                _frameCache.Clear();
             }
             IsDisposed = true;
         }
@@ -30,7 +30,7 @@ namespace AnimationImage.WPF
             var result = FrameData.Empty;
             try
             {
-                if (data.Index == FrameCount - 1)
+                if (data.Index == _frameCount - 1)
                 {
                     data = new FrameData(0, data.Bitmap);
                 }
@@ -41,7 +41,7 @@ namespace AnimationImage.WPF
                     var canvas = data.Bitmap ?? this.CreateNewFrame();
                     var r = SKCodecResult.Unimplemented;
                     canvas.Lock();
-                    lock (CodecLocker)
+                    lock (_codecLocker)
                     {
                         r = Codec.GetPixels(AnimatableBitmap.CreateDecodeInfo(canvas.PixelWidth, canvas.PixelHeight), canvas.BackBuffer, new SKCodecOptions(index, -1));
                     }
@@ -103,7 +103,7 @@ namespace AnimationImage.WPF
                 var codecInfo = AnimatableBitmap.CreateDecodeInfo(Codec.Info.Size.Width, Codec.Info.Size.Height);
                 var r = SKCodecResult.Unimplemented;
                 canvas.Lock();
-                lock (CodecLocker)
+                lock (_codecLocker)
                 {
                     r = Codec.GetPixels(codecInfo, canvas.BackBuffer, new SKCodecOptions(index, -1));
                 }
@@ -133,7 +133,7 @@ namespace AnimationImage.WPF
                 if (requiredFrame == -1)
                 {
                     canvas.Lock();
-                    lock (CodecLocker)
+                    lock (_codecLocker)
                     {
                         result = Codec.GetPixels(codecInfo, canvas.BackBuffer, new SKCodecOptions(index, -1));
                     }
@@ -151,7 +151,7 @@ namespace AnimationImage.WPF
                         priorFrame = -1;
 
                     canvas.Lock();
-                    lock (CodecLocker)
+                    lock (_codecLocker)
                     {
                         result = Codec.GetPixels(codecInfo, canvas.BackBuffer, new SKCodecOptions(index, priorFrame));
                     }
