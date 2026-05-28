@@ -57,6 +57,18 @@ Avalonia（用法与WPF基本相同）：`xmlns:ani="using:AnimationImage.Avalon
 <Image ani:AnimationBehavior.AnimatableBitmap="[path]"
        ani:AnimationBehavior.LoopCount="-1" />
 ```
+**显卡加速功能在Avalonia上表现与WPF不同，对于简单场景的动画反而降低帧率，建议使用默认配置进行关闭。**
+```C#
+public partial class App : Application
+    {
+        public override void Initialize()
+        {
+            //修改为默认不启用显卡加速
+            AnimatableBitmapOptions.Default = new AnimatableBitmapOptions(useGPU: false);
+            AvaloniaXamlLoader.Load(this);
+        }
+    }
+```
 
 ## ✈️更新日志
 v1.0.5  
