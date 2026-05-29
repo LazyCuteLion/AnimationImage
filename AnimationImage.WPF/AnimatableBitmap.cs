@@ -22,7 +22,6 @@ using System.Windows.Media.Imaging;
 
 namespace AnimationImage.WPF
 {
-    [TypeConverter(typeof(AnimatableBitmapConverter))]
     public abstract partial class AnimatableBitmap
     {
         public virtual async void AttachTarget(FrameworkElement target)

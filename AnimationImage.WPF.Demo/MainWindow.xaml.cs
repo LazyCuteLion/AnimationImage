@@ -33,17 +33,11 @@ namespace AnimationImage.WPF.Demo
             var dialog = new OpenFileDialog();
             if (dialog.ShowDialog() == true)
             {
-                var s = AnimatableBitmapFactory.Default.Create(new Uri(dialog.FileName));
+                var s = AnimatableBitmapFactory.Default.Create(new AnimatableBitmapOptions(dialog.FileName,
+                                                               preloadCount: int.Parse(tbPreloadCount.Text),
+                                                               useGPU: cbUseGPU.IsChecked ?? false));
                 AnimationBehavior.SetAnimatableBitmap(img, s);
             }
         }
-
-        private void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-        }
-
-
     }
-
-
 }

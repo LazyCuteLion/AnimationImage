@@ -26,7 +26,7 @@ namespace AnimationImage.Avalonia
     {
         #region 字段
         private readonly SkDecoder _decoder;
-        private int FrameCount => _decoder.Codec?.FrameCount ?? 0;
+        private readonly int _frameCount;
         private readonly List<double> _durations = new();
         private int _currentIndex = -1;
         private bool _isLoading = false;
@@ -36,30 +36,30 @@ namespace AnimationImage.Avalonia
         {
             //暂时先只处理本地文件
             _decoder = new SkDecoder(_stream, options.PreloadCount);
-            if (_decoder.Codec == null)
+            if (_decoder.SKCodec == null)
             {
                 this.State = AnimationState.Error;
                 return;
             }
-
+            _frameCount = _decoder.SKCodec?.FrameCount ?? 0;
             var duration = 0.0;
             // 计算累计时间轴（每帧的结束时间点，毫秒）
-            if (FrameCount > 1)
+            if (_frameCount > 1)
             {
-                for (int i = 0; i < FrameCount; i++)
+                for (int i = 0; i < _frameCount; i++)
                 {
-                    var info = _decoder.Codec.FrameInfo[i];
+                    var info = _decoder.SKCodec.FrameInfo[i];
                     duration += info.Duration;
                     _durations.Add(duration);
                 }
             }
 
-            this.Metadata = new Metadata(_decoder.Codec.Info.Width,
-                                         _decoder.Codec.Info.Height,
-                                         duration,
-                                         FrameCount,
-                                         duration > 0 ? (int)(FrameCount * 1000 / duration) : 0,
-                                         _decoder.Codec.RepetitionCount);
+            this.Metadata = new Metadata(_decoder.SKCodec.Info.Width,
+                                      _decoder.SKCodec.Info.Height,
+                                      duration,
+                                      _frameCount,
+                                      duration > 0 ? (int)(_frameCount * 1000 / duration) : 0,
+                                      _decoder.SKCodec.RepetitionCount);
 
             var data = _decoder.Get(0);
             this.Frame = !data.IsEmpty ? data.Bitmap : CreateNewFrame(Metadata.PixelWidth, Metadata.PixelHeight);
@@ -79,8 +79,7 @@ namespace AnimationImage.Avalonia
         }
 
         public override bool IsAnimatable => base.IsAnimatable
-                            && _decoder.Codec != null
-                            && FrameCount > 0
+                            && _frameCount > 0
                             && !_isLoading;
 
         /// <summary>
@@ -94,7 +93,7 @@ namespace AnimationImage.Avalonia
             var index = TimeToIndex(milliseconds);
             try
             {
-                if (index < 0 || index > FrameCount - 1 || index == _currentIndex)
+                if (index < 0 || index > _frameCount - 1 || index == _currentIndex)
                     return;
 
                 var data = _decoder.Get(index, new FrameData(_currentIndex, this.Frame));

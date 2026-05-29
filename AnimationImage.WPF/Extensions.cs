@@ -3,18 +3,62 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 
 namespace AnimationImage.Core
 {
+    public interface ILockedFramebuffer : IDisposable
+    {
+        IntPtr Address { get; }
+        int RowBytes { get; }
+        void Update(SKRectI rect);
+    }
+
+    public sealed class WriteableBitmapLockScope : ILockedFramebuffer
+    {
+        private readonly WriteableBitmap _bitmap;
+        private bool _disposed;
+        private Int32Rect? _rect;
+
+        public IntPtr Address { get; private set; }
+
+        public int RowBytes { get; private set; }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            if (_rect.HasValue)
+                _bitmap.AddDirtyRect(_rect.Value);
+            _bitmap.Unlock();
+            Address = IntPtr.Zero;
+        }
+
+        public WriteableBitmapLockScope(WriteableBitmap bitmap, Int32Rect? rect = null)
+        {
+            _bitmap = bitmap ?? throw new ArgumentNullException(nameof(bitmap));
+            _rect = rect ?? new Int32Rect(0, 0, bitmap.PixelWidth, bitmap.PixelHeight);
+            bitmap.Lock();
+            Address = bitmap.BackBuffer;
+            RowBytes = bitmap.BackBufferStride;
+        }
+
+        public void Update(SKRectI rect)
+        {
+            _rect = rect.ToInt32Rect();
+        }
+    }
+
     public static class Extensions
     {
         /// <summary>
@@ -54,6 +98,26 @@ namespace AnimationImage.Core
             return tcs.Task;
         }
 
+        public static ILockedFramebuffer LockScope(this WriteableBitmap bitmap)
+        {
+            return new WriteableBitmapLockScope(bitmap);
+        }
+
+        public static ILockedFramebuffer Lock(this WriteableBitmap bitmap, Int32Rect rect)
+        {
+            return new WriteableBitmapLockScope(bitmap, rect);
+        }
+
+        public static bool EqualsSize(this WriteableBitmap bitmap, int width, int height)
+        {
+            return bitmap.PixelWidth == width && bitmap.PixelHeight == height;
+        }
+
+        public static bool EqualsSize(this WriteableBitmap bitmap, SKSizeI size)
+        {
+            return bitmap.PixelWidth == size.Width && bitmap.PixelHeight == size.Height;
+        }
+
         /// <summary>
         /// 尝试冻结图像以提高性能以及跨线程访问
         /// </summary>
@@ -83,6 +147,11 @@ namespace AnimationImage.Core
         public static void Update(this WriteableBitmap self)
         {
             self.AddDirtyRect(new Int32Rect(0, 0, self.PixelWidth, self.PixelHeight));
+        }
+
+        public static void Update(this WriteableBitmap bitmap, SKRectI rect)
+        {
+            bitmap.AddDirtyRect(rect.ToInt32Rect());
         }
 
         /// <summary>
@@ -225,7 +294,6 @@ namespace AnimationImage.Core
             return true;
         }
 
-
         public static SKRectI ToSKRectI(this SKRect rect)
         {
             return new SKRectI((int)rect.Left, (int)rect.Top, (int)Math.Ceiling(rect.Right), (int)Math.Ceiling(rect.Bottom));
@@ -234,6 +302,11 @@ namespace AnimationImage.Core
         public static Int32Rect ToInt32Rect(this SKRectI rect)
         {
             return new Int32Rect(rect.Left, rect.Top, rect.Width, rect.Height);
+        }
+
+        public static Size GetLayoutSlot(this FrameworkElement element)
+        {
+            return LayoutInformation.GetLayoutSlot(element).Size;
         }
     }
 }

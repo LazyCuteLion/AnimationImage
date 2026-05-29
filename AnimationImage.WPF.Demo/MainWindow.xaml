@@ -2,15 +2,17 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ani="clr-namespace:AnimationImage.WPF;assembly=AnimationImage.WPF"
+        xmlns:core="clr-namespace:AnimationImage.Core;assembly=AnimationImage.WPF"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:local="clr-namespace:AnimationImage.WPF.Demo"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         Title="AnimationImage.WPF.Demo"
-        mc:Ignorable="d"
         Width="1294"
-        Height="758">
+        Height="758"
+        mc:Ignorable="d">
 
-    <Grid local:RenderingHelper.ShowFPS="True" Background="Green">
+    <Grid local:RenderingHelper.ShowFPS="True"
+          Background="Green">
         <Grid>
             <!--  使用附加属性  -->
             <!--
@@ -22,9 +24,9 @@
              <Border Background="{ani:AnimatableBitmap '[path]'}" />
             -->
             <!--  指定预加载帧数  -->
-            <!--
-             <Image Source="{ani:AnimatableBitmap '[path]',PreloadCount=30}"/>
-            -->
+             <!--<Image Source="{ani:AnimatableBitmap 'D:\\Pictures\\evitare-loader.gif',PreloadCount={x:Static core:PreloadOptions.Disable}}"
+                    ani:AnimationBehavior.AutoStart="True"/>-->
+            
             <Image x:Name="img"
                    ani:AnimationBehavior.AutoStart="True"
                    ani:AnimationBehavior.ForceFPS="144"
@@ -33,6 +35,7 @@
                    Stretch="Uniform"
                    Visibility="Visible" />
 
+
             <TextBlock Margin="10,30,0,0"
                        HorizontalAlignment="Left"
                        VerticalAlignment="Top"
@@ -40,15 +43,16 @@
                        Text="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap).TPS, StringFormat={}{0:F1}}" />
 
             <TextBlock Margin="10"
+                       Padding="10"
                        HorizontalAlignment="Right"
                        VerticalAlignment="Top"
+                       Background="#7D000000"
                        Foreground="White"
                        Text="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap).Metadata}"
-                       TextWrapping="Wrap" 
-                       Background="#7D000000"
-                       Padding="10"/>
+                       TextWrapping="Wrap" />
 
-            <StackPanel Margin="30,50" VerticalAlignment="Bottom">
+            <StackPanel Margin="30,50"
+                        VerticalAlignment="Bottom">
                 <Grid MinWidth="300">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
@@ -60,36 +64,56 @@
                             SmallChange="0.0001"
                             Value="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimationTime), Mode=TwoWay}" />
                     <TextBlock Grid.Column="1"
+                               Margin="10,0,0,0"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Center"
                                Foreground="White"
-                               Margin="10,0,0,0"
                                Text="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimationTime), StringFormat={}{0:F1}}" />
                 </Grid>
             </StackPanel>
 
-            <StackPanel HorizontalAlignment="Right"
-                        VerticalAlignment="Bottom"
-                        DataContext="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
-                        Orientation="Horizontal">
-                <Button Margin="10"
-                        Click="Button_Click"
-                        Content="Open" />
-
-                <Button Margin="10"
-                        Command="{Binding BeginCommand, Mode=OneTime}"
-                        Content="Play" />
-
-                <Button Margin="10"
-                        Command="{Binding PauseCommand, Mode=OneTime}"
-                        Content="Pause" />
-
-                <Button Margin="10"
-                        Command="{Binding StopCommand, Mode=OneTime}"
-                        Content="Stop" />
-
-            </StackPanel>
-
+            <Grid VerticalAlignment="Bottom"
+                  Background="#7D000000">
+                <ComboBox Width="120"
+                          Margin="10,0,0,0"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Center"
+                          SelectedItem="{Binding ElementName=img, Path=Stretch, Mode=TwoWay}">
+                    <Stretch>Fill</Stretch>
+                    <Stretch>None</Stretch>
+                    <Stretch>Uniform</Stretch>
+                    <Stretch>UniformToFill</Stretch>
+                </ComboBox>
+                <StackPanel HorizontalAlignment="Right"
+                            DataContext="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
+                            Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center"
+                               Foreground="White"
+                               Text="PreloadCount：" />
+                    <TextBox Name="tbPreloadCount"
+                             Width="50"
+                             Height="20"
+                             VerticalAlignment="Center"
+                             Text="30" />
+                    <CheckBox x:Name="cbUseGPU"
+                              Margin="10,0,0,0"
+                              VerticalAlignment="Center"
+                              Content="显卡加速"
+                              Foreground="White" />
+                    <Button Margin="10"
+                            Click="Button_Click"
+                            Content="Open" />
+                    <Button Margin="10"
+                            Command="{Binding BeginCommand, Mode=OneTime}"
+                            Content="Play" />
+                    <Button Margin="10"
+                            Command="{Binding PauseCommand, Mode=OneTime}"
+                            Content="Pause" />
+                    <Button Margin="10"
+                            Command="{Binding StopCommand, Mode=OneTime}"
+                            Content="Stop" />
+                </StackPanel>
+            </Grid>
         </Grid>
     </Grid>
 </Window>

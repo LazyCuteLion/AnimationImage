@@ -20,7 +20,6 @@ using FrameworkElement = Avalonia.Controls.Control;
 
 namespace AnimationImage.Avalonia
 {
-    [TypeConverter(typeof(AnimatableBitmapConverter))]
     public abstract partial class AnimatableBitmap
     {
         protected virtual void Dispose(bool disposing)
@@ -119,7 +118,8 @@ namespace AnimationImage.Avalonia
 
         private void CreateAnimation()
         {
-            var loopCount = AnimationBehavior.GetLoopCount(Target) ?? (Metadata.LoopCount >= 0 ? Metadata.LoopCount + 1 : Metadata.LoopCount);
+            var loopCount = AnimationBehavior.GetLoopCount(Target) 
+                         ?? (Metadata.LoopCount >= 0 ? Metadata.LoopCount + 1 : Metadata.LoopCount);
             _animation = new Animation()
             {
                 Duration = TimeSpan.FromMilliseconds(Metadata.Duration),

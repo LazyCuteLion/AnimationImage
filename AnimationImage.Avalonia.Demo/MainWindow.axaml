@@ -14,22 +14,22 @@
                ani:AnimationBehavior.AutoStart="True"
                ani:AnimationBehavior.LoopCount="-1"
                RenderOptions.BitmapInterpolationMode="HighQuality"
-               Stretch="Uniform" 
+               Stretch="Uniform"
                />
         <!--
-        <Rectangle Width="100" Height="100" 
-                   HorizontalAlignment="Right" 
-                   VerticalAlignment="Top"
-                   ani:AnimationBehavior.AutoStart="True"
-                   ani:AnimationBehavior.LoopCount="-1"
-                   Fill="{ani:AnimatableBitmap '[path]'}"/>
-       -->
+        <Rectangle Width="100" Height="100"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Top"
+        ani:AnimationBehavior.AutoStart="True"
+        ani:AnimationBehavior.LoopCount="-1"
+        Fill="{ani:AnimatableBitmap '[path]'}"/>
+        -->
         <TextBlock Margin="10,20"
                    HorizontalAlignment="Left"
                    VerticalAlignment="Top"
                    x:DataType="ani:AnimatableBitmap"
                    DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
-                   Text="{Binding TPS,StringFormat={}{0:F1}}" 
+                   Text="{Binding TPS,StringFormat={}{0:F1}}"
                    Foreground="White"/>
         <TextBlock Margin="10"
                    HorizontalAlignment="Right"
@@ -37,57 +37,68 @@
                    x:DataType="ani:AnimatableBitmap"
                    DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
                    Text="{Binding Metadata}"
-                   TextWrapping="Wrap" 
+                   TextWrapping="Wrap"
                    Padding="10"
                    Foreground="White"
                    Background="#7D000000"/>
 
-        <StackPanel Margin="30" VerticalAlignment="Bottom">
-                <Grid MinWidth="300">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition Width="80" />
-                    </Grid.ColumnDefinitions>
-                   
-                    <Slider LargeChange="1"
-                            x:DataType="ani:AnimatableBitmap"
-                            DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
-                            Maximum="{Binding Metadata.Duration}"
-                            Minimum="0"
-                            SmallChange="0.0001"
-                            Value="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimationTime)}" />
-                   
-                    <TextBlock Grid.Column="1"
-                               HorizontalAlignment="Left"
-                               VerticalAlignment="Center"
-                               Foreground="White"
-                               Margin="10,0,0,0"
-                               Text="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimationTime),StringFormat={}{0:F1}}" />
-                </Grid>
-            </StackPanel>
+        <StackPanel Margin="30,50" VerticalAlignment="Bottom">
+            <Grid MinWidth="300">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="80" />
+                </Grid.ColumnDefinitions>
 
-        <StackPanel HorizontalAlignment="Right"
-                    VerticalAlignment="Bottom"
-                    Orientation="Horizontal"
-                    DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
-                    x:DataType="ani:AnimatableBitmap"
-                    Background="#7DFFFFFF">
-            <CheckBox x:Name="cbUseGPU" Content="显卡加速" VerticalAlignment="Center" Margin="10,0,0,0"/>
-            <Button Margin="10"
-                    Click="Button_Click"
-                    Content="Open" />
-            <Button Margin="10"
-                    Content="Play" 
-                    Command="{Binding BeginCommand,Mode=OneTime}"/>
+                <Slider LargeChange="1"
+                        x:DataType="ani:AnimatableBitmap"
+                        DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
+                        Maximum="{Binding Metadata.Duration}"
+                        Minimum="0"
+                        SmallChange="0.0001"
+                        Value="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimationTime)}" />
 
-            <Button Margin="10"
-                    Content="Pause" 
-                    Command="{Binding PauseCommand,Mode=OneTime}"/>
-
-            <Button Margin="10"
-                    Content="Stop" 
-                    Command="{Binding StopCommand,Mode=OneTime}"/>
+                <TextBlock Grid.Column="1"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center"
+                           Foreground="White"
+                           Margin="10,0,0,0"
+                           Text="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimationTime),StringFormat={}{0:F1}}" />
+            </Grid>
         </StackPanel>
-
+        <Grid VerticalAlignment="Bottom" Background="#7DFFFFFF">
+            <ComboBox SelectedItem="{Binding #view.Stretch}" VerticalAlignment="Center" Width="120"
+                      Margin="10,0,0,0">
+                <Stretch>Fill</Stretch>
+                <Stretch>None</Stretch>
+                <Stretch>Uniform</Stretch>
+                <Stretch>UniformToFill</Stretch>
+            </ComboBox>
+            <StackPanel HorizontalAlignment="Right"
+                        Orientation="Horizontal"
+                        DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
+                        x:DataType="ani:AnimatableBitmap">
+                <TextBlock VerticalAlignment="Center"
+                           Text="PreloadCount："
+                           Margin="10,0,0,0"/>
+                <TextBox Name="tbPreloadCount"
+                         Width="50"
+                         Height="20"
+                         VerticalAlignment="Center"
+                         Text="-2" />
+                <CheckBox x:Name="cbUseGPU" Content="显卡加速" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                <Button Margin="10"
+                        Click="Button_Click"
+                        Content="Open" />
+                <Button Margin="10"
+                        Content="Play"
+                        Command="{Binding BeginCommand,Mode=OneTime}"/>
+                <Button Margin="10"
+                        Content="Pause"
+                        Command="{Binding PauseCommand,Mode=OneTime}"/>
+                <Button Margin="10"
+                        Content="Stop"
+                        Command="{Binding StopCommand,Mode=OneTime}"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

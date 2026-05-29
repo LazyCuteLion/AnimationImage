@@ -39,15 +39,16 @@ using FrameworkElement = Avalonia.Controls.Control;
 namespace AnimationImage.Avalonia
 #endif
 {
+    [TypeConverter(typeof(AnimatableBitmapConverter))]
 	public abstract partial class AnimatableBitmap : INotifyPropertyChanged
 	{
 		protected Stream _stream;
-		protected double CurrentTime { get; private set; }
-		protected FrameworkElement Target;
-		
-		private bool _waitForResume = false;
-		private Stopwatch _tpsWatcher;
-		private int _tpsCount;
+
+        private bool _waitForResume = false;
+      
+        protected double CurrentTime { get; private set; }
+
+		protected FrameworkElement Target { get; private set; }
 
 		private WriteableBitmap _frame;
 		public WriteableBitmap Frame
@@ -67,6 +68,9 @@ namespace AnimationImage.Avalonia
 
 		public Metadata Metadata { get; protected set; }
 
+		#region TPS
+		private Stopwatch _tpsWatcher;
+		private int _tpsCount;
 		private double _tps;
 		/// <summary>
 		/// 每秒更新次数（Ticks Per Second），表示动画实际更新的频率，数值越高动画越流畅。
@@ -83,7 +87,8 @@ namespace AnimationImage.Avalonia
 					this.RasiePropertyChanged();
 				}
 			}
-		}
+		} 
+		#endregion
 
 		public virtual bool IsAnimatable => Frame != null
 										&& Target != null
@@ -118,8 +123,8 @@ namespace AnimationImage.Avalonia
 			else if (source.Scheme == "pack")
 			{
 				_stream = Application.GetResourceStream(source)?.Stream
-					  ?? Application.GetContentStream(source)?.Stream
-					  ?? Application.GetRemoteStream(source)?.Stream;
+					   ?? Application.GetContentStream(source)?.Stream
+					   ?? Application.GetRemoteStream(source)?.Stream;
 			}
 
 #endif

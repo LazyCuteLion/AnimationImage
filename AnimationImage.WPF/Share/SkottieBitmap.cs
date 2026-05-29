@@ -43,10 +43,10 @@ namespace AnimationImage.Avalonia
 {
     public partial class SkottieBitmap : AnimatableBitmap
     {
-        private Animation _animation;
+        private Animation? _animation;
         private SKImageInfo _info;
-        private GRContext _gpuContext;
-        private SKSurface _gpuSurface;
+        private GRContext? _gpuContext;
+        private SKSurface? _gpuSurface;
         private double _renderScale;
 
         public override bool IsAnimatable => base.IsAnimatable && _animation != null;
@@ -80,7 +80,7 @@ namespace AnimationImage.Avalonia
             base.AttachTarget(target);
         }
 
-        private void OnSizeChanged(object sender, SizeChangedEventArgs e)
+        private void OnSizeChanged(object? sender, SizeChangedEventArgs e)
         {
             if (_disposed)
                 return;
@@ -89,30 +89,23 @@ namespace AnimationImage.Avalonia
                 this.SeekTime(CurrentTime);
         }
 
-        private void UpdateSize(FrameworkElement element = null)
+        private void UpdateSize(FrameworkElement? element = null)
         {
-            //不使用Lottie本身宽高，因为有些图定义的宽高为1.0x1.0
+            if (_animation == null)
+                return;
+
+            //不使用Lottie本身宽高，因为有些图定义的宽高为1.0x1.0，矢量图
             var w = (double)_animation.Size.Width;
             var h = (double)_animation.Size.Height;
 
             if (element != null)
             {
                 //使用该方法获取控件真实可用大小，而非(ActualWidth,ActualHeight)，因为可能为0
-#if WPF
-            var rect = LayoutInformation.GetLayoutSlot(element);
-            var width = rect.Width;
-            var height = rect.Height;
-#endif
-#if AVALONIA
-                var size = LayoutInformation.GetPreviousMeasureConstraint(element);
-                var width = size?.Width ?? 0;
-                var height = size?.Height ?? 0;
-#endif
-
-                if (width > 0 && height > 0)
+                var size = element.GetLayoutSlot();
+                if (size.Width > 0 && size.Width > 0)
                 {
-                    var scaleX = width / w;
-                    var scaleY = height / h;
+                    var scaleX = size.Width / w;
+                    var scaleY = size.Width / h;
                     //保持比例
                     var scale = Math.Min(scaleX, scaleY);
                     //等比例计算宽高
@@ -126,12 +119,12 @@ namespace AnimationImage.Avalonia
             h *= _renderScale;
 
             //限制不要过小
-            var w2 = (int)Math.Max(32, w);
-            var h2 = (int)Math.Max(32, h);
+            var width = (int)Math.Max(32, w);
+            var height = (int)Math.Max(32, h);
 
-            if (_info == null || _info.Width != w2 || _info.Height != h2)
+            if (_info.Width != width || _info.Height != height)
             {
-                _info = CreateDecodeInfo(w2, h2);
+                _info = CreateDecodeInfo(width, height);
                 _gpuSurface?.Dispose();
                 _gpuSurface = null;
                 if (_gpuContext != null)
@@ -147,8 +140,29 @@ namespace AnimationImage.Avalonia
             try
             {
                 var seconds = milliseconds / 1000.0;
-                _animation.SeekFrameTime(seconds);
-                this.Render();
+                _animation!.SeekFrameTime(seconds);
+
+                var frame = !this.Frame.EqualsSize(_info.Width, _info.Height)
+                            ? CreateNewFrame(_info.Width, _info.Height)
+                            : this.Frame;
+
+                if (_gpuSurface != null)
+                {
+                    _gpuSurface.Canvas.Clear();
+                    _animation.Render(_gpuSurface.Canvas, _info.Rect);//渲染后，需要把数据从GPU复制到CPU
+                    _gpuSurface.Flush();
+                    using var locker = frame.LockScope();
+                    _gpuSurface.ReadPixels(_info, locker.Address, locker.RowBytes, 0, 0);//复制像素，1080x700复杂动画，耗时10~15
+                }
+                else
+                {
+                    using var locker = frame.LockScope();
+                    using var surface = SKSurface.Create(_info, locker.Address, locker.RowBytes);
+                    surface.Canvas.Clear();
+                    _animation.Render(surface.Canvas, _info.Rect);
+                }
+
+                this.Frame = frame;
             }
             catch
             {
@@ -190,11 +204,11 @@ namespace AnimationImage.Avalonia
 
         private void TryUseGPU()
         {
-            if (D3D12.D3D12CreateDevice(null, FeatureLevel.Level_12_0, out ID3D12Device device).Failure)
+            if (D3D12.D3D12CreateDevice(null, FeatureLevel.Level_12_0, out ID3D12Device? device).Failure)
                 return;
 
             using var dxgiFactory = DXGI.CreateDXGIFactory1<IDXGIFactory4>();
-            if (dxgiFactory.EnumAdapterByLuid<IDXGIAdapter1>(Luid.FromInt64(device.AdapterLuid), out var adapter).Failure)
+            if (dxgiFactory.EnumAdapterByLuid<IDXGIAdapter1>(Luid.FromInt64(device!.AdapterLuid), out var adapter).Failure)
                 return;
 
             var queueDesc = new CommandQueueDescription(CommandListType.Direct);
@@ -203,7 +217,7 @@ namespace AnimationImage.Avalonia
             using var backendContext = new GRD3DBackendContext()
             {
                 Device = device.NativePointer,
-                Adapter = adapter.NativePointer,
+                Adapter = adapter!.NativePointer,
                 Queue = commandQueue.NativePointer,
             };
 
