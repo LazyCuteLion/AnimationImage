@@ -57,20 +57,26 @@ Avalonia（用法与WPF基本相同）：`xmlns:ani="using:AnimationImage.Avalon
 <Image ani:AnimationBehavior.AnimatableBitmap="[path]"
        ani:AnimationBehavior.LoopCount="-1" />
 ```
-**显卡加速功能在Avalonia上表现与WPF不同，对于简单场景的动画反而降低帧率，建议使用默认配置进行关闭。**
+
 ```C#
 public partial class App : Application
-    {
-        public override void Initialize()
-        {
-            //修改为默认不启用显卡加速
-            AnimatableBitmapOptions.Default = new AnimatableBitmapOptions(useGPU: false);
-            AvaloniaXamlLoader.Load(this);
-        }
-    }
+{
+   public override void Initialize()
+   {
+       AnimatableBitmapOptions.Default = new AnimatableBitmapOptions()
+       {
+           UseGPU = false,//禁用显卡加速
+           PreloadCount = PreloadOptions.Disable,//禁用预加载和缓存
+       };
+       AvaloniaXamlLoader.Load(this);
+   }
+}
 ```
 
 ## ✈️更新日志
+v1.0.6  
+🧨 功能回归：全新的`GIF/WebP 预加载机制`：若解码速度不能满足帧率要求，则自动预加载，然后开启后台线程持续解码并缓存。可通过`AnimatableBitmapOptions.Default`来调整这一默认行为。  
+
 v1.0.5  
 👏 重大变更：引入`Vortice.Direct3D12`，为Lottie提供显卡加速功能，对于复杂场景的动画有很大的提升！默认已开启，也可以通过`UseGPU`关闭。 
 

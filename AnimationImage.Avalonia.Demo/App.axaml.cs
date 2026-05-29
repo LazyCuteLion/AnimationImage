@@ -14,8 +14,8 @@ namespace AnimationImage.Avalonia.Demo
             //又有新发现，似乎是受调试模式影响，若不调试仅启动，则帧率不受影响。
             //AnimatableBitmapOptions.Default = new AnimatableBitmapOptions()
             //{
-            //    UseGPU = false,
-            //    PreloadCount = PreloadOptions.Full
+            //    UseGPU = false,//禁用显卡加速
+            //    PreloadCount = PreloadOptions.Disable,//禁用预加载和缓存
             //};
             AvaloniaXamlLoader.Load(this);
         }
