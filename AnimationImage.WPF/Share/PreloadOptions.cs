@@ -1,4 +1,5 @@
-namespace AnimationImage.Core;
+
+namespace AnimationImage;
 
 public static class PreloadOptions
 {

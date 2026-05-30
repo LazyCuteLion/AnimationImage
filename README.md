@@ -44,7 +44,9 @@ Install-Package AnimationImage.Avalonia
 
 ## 使用方法（参考2个Demo项目）  
 
-WPF：`xmlns:ani="clr-namespace:AnimationImage.WPF;assembly=AnimationImage.WPF"`  
+引入命名空间：`xmlns:ani="https://github.com/LazyCuteLion/AnimationImage"`  
+
+WPF：
 
 ```xaml
 <!-- 指定帧率为144，永久循环 -->
@@ -83,7 +85,7 @@ WPF：`xmlns:ani="clr-namespace:AnimationImage.WPF;assembly=AnimationImage.WPF"`
 </StackPanel>
 ```
 
-Avalonia（用法与WPF基本相同）：`xmlns:ani="using:AnimationImage.Avalonia"` 
+Avalonia（用法与WPF基本相同）：
 ```axaml
 <!-- 永久循环 -->
 <Image ani:AnimationBehavior.AnimatableBitmap="[path]"

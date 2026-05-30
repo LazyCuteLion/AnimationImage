@@ -6,12 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-#if WPF
-namespace AnimationImage.WPF
-#endif
-#if AVALONIA
-namespace AnimationImage.Avalonia
-#endif
+namespace AnimationImage
 {
     public class AnimatableBitmapConverter : TypeConverter
     {

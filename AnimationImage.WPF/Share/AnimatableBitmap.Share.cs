@@ -1,6 +1,4 @@
-﻿
-using AnimationImage.Core;
-using SkiaSharp;
+﻿using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -23,7 +21,6 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 
-namespace AnimationImage.WPF
 #endif
 
 #if AVALONIA
@@ -36,8 +33,9 @@ using Avalonia.Platform;
 using Avalonia.Styling;
 using FrameworkElement = Avalonia.Controls.Control;
 
-namespace AnimationImage.Avalonia
+
 #endif
+namespace AnimationImage
 {
     [TypeConverter(typeof(AnimatableBitmapConverter))]
 	public abstract partial class AnimatableBitmap : INotifyPropertyChanged

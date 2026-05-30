@@ -1,5 +1,4 @@
-﻿using AnimationImage.Core;
-using SkiaSharp;
+﻿using SkiaSharp;
 using SkiaSharp.Skottie;
 using System;
 using System.Collections.Concurrent;
@@ -15,6 +14,8 @@ using Vortice.Direct3D12;
 using Vortice.Direct3D;
 using Vortice.DXGI;
 using Vortice;
+using System.Xml.Linq;
+
 
 #if WPF
 using System.Windows;
@@ -26,8 +27,6 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
-
-namespace AnimationImage.WPF
 #endif
 
 #if AVALONIA
@@ -37,9 +36,9 @@ using Avalonia.Layout;
 using Avalonia.Media.Imaging;
 using Avalonia.Vulkan;
 using FrameworkElement = Avalonia.Controls.Control;
-
-namespace AnimationImage.Avalonia
 #endif
+
+namespace AnimationImage
 {
     public partial class SkottieBitmap : AnimatableBitmap
     {
@@ -60,7 +59,6 @@ namespace AnimationImage.Avalonia
                 return;
             }
             _renderScale = Math.Min(2, Math.Max(0.1, options.RenderScale));
-            this.UpdateSize();
             this.Metadata = new Metadata((int)_animation.Size.Width,
                                         (int)_animation.Size.Height,
                                         _animation.Duration.TotalMilliseconds,
@@ -74,7 +72,8 @@ namespace AnimationImage.Avalonia
 
         public override void AttachTarget(FrameworkElement target)
         {
-            this.UpdateSize(target);
+            //初始化时，获取控件的可用大小，而非其被分配的大小
+            this.UpdateSize(target.GetLayoutSlot());
             this.Frame = CreateNewFrame(_info.Width, _info.Height);
             target.SizeChanged += OnSizeChanged;
             base.AttachTarget(target);
@@ -84,34 +83,30 @@ namespace AnimationImage.Avalonia
         {
             if (_disposed)
                 return;
-            this.UpdateSize(sender as FrameworkElement);
+            this.UpdateSize(e.NewSize);
             if (State != AnimationState.Playing)
                 this.SeekTime(CurrentTime);
         }
 
-        private void UpdateSize(FrameworkElement? element = null)
+        private void UpdateSize(Size size)
         {
             if (_animation == null)
                 return;
 
-            //不使用Lottie本身宽高，因为有些图定义的宽高为1.0x1.0，矢量图
             var w = (double)_animation.Size.Width;
             var h = (double)_animation.Size.Height;
 
-            if (element != null)
+            if (size.Width != w || size.Height != h)
             {
-                //使用该方法获取控件真实可用大小，而非(ActualWidth,ActualHeight)，因为可能为0
-                var size = element.GetLayoutSlot();
-                if (size.Width > 0 && size.Width > 0)
-                {
-                    var scaleX = size.Width / w;
-                    var scaleY = size.Width / h;
-                    //保持比例
-                    var scale = Math.Min(scaleX, scaleY);
-                    //等比例计算宽高
-                    w *= scale;
-                    h *= scale;
-                }
+                var scaleX = size.Width / w;
+                var scaleY = size.Height / h;
+                //保持比例
+                var scale = Math.Min(scaleX, scaleY);
+                if (scale == 0)
+                    scale = Math.Max(scaleX, scaleY);
+                //等比例计算宽高
+                w *= scale;
+                h *= scale;
             }
 
             //计算相对于“渲染器”的宽高
@@ -119,8 +114,8 @@ namespace AnimationImage.Avalonia
             h *= _renderScale;
 
             //限制不要过小
-            var width = (int)Math.Max(32, w);
-            var height = (int)Math.Max(32, h);
+            var width = (int)Math.Ceiling(Math.Max(32, w));
+            var height = (int)Math.Ceiling(Math.Max(32, h));
 
             if (_info.Width != width || _info.Height != height)
             {
@@ -129,16 +124,17 @@ namespace AnimationImage.Avalonia
                 _gpuSurface = null;
                 if (_gpuContext != null)
                     _gpuSurface = SKSurface.Create(_gpuContext, false, _info);
+                Debug.WriteLine($"设置大小：{_info.Size}");
             }
         }
 
         internal override void SeekTime(double milliseconds)
         {
-            if (!IsAnimatable)
-                return;
             var st = Stopwatch.StartNew();
             try
             {
+                if (!IsAnimatable)
+                    return;
                 var seconds = milliseconds / 1000.0;
                 _animation!.SeekFrameTime(seconds);
 

@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace AnimationImage.Core
+namespace AnimationImage
 {
     public record Metadata
     {

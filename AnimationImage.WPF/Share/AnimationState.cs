@@ -1,5 +1,5 @@
 ﻿
-namespace AnimationImage.Core
+namespace AnimationImage
 {
     public enum AnimationState
     {

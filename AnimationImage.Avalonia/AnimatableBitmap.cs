@@ -1,5 +1,4 @@
-﻿using AnimationImage.Core;
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Data;
@@ -18,7 +17,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using FrameworkElement = Avalonia.Controls.Control;
 
-namespace AnimationImage.Avalonia
+namespace AnimationImage
 {
     public abstract partial class AnimatableBitmap
     {

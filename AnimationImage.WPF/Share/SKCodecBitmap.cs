@@ -1,17 +1,15 @@
-﻿using AnimationImage.Core;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Collections;
 using System.Collections.Generic;
 using System;
 
 #if WPF
 using System.Windows.Input;
-namespace AnimationImage.WPF
 #endif
 #if AVALONIA
 using Avalonia.Input;
-namespace AnimationImage.Avalonia
 #endif
+namespace AnimationImage
 {
     /// <summary>
     /// 基于 SkiaSharp.SKCodec 的动画
@@ -90,7 +88,9 @@ namespace AnimationImage.Avalonia
         {
             if (!this.IsAnimatable || _isLoading)
                 return;
+
             var index = TimeToIndex(milliseconds);
+            
             try
             {
                 if (index < 0 || index > _frameCount - 1 || index == _currentIndex)
@@ -111,7 +111,6 @@ namespace AnimationImage.Avalonia
                 _currentIndex = index;
                 base.SeekTime(milliseconds);
             }
-
         }
 
         /// <summary>

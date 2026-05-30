@@ -12,7 +12,9 @@
 
 ## 🚝[使用方法](https://github.com/LazyCuteLion/AnimationImage)  
 
-WPF：`xmlns:ani="clr-namespace:AnimationImage.WPF;assembly=AnimationImage.WPF"`  
+引入命名空间：`xmlns:ani="https://github.com/LazyCuteLion/AnimationImage"`  
+
+WPF：
 
 ```xaml
 <!-- 指定帧率为144，永久循环 -->
@@ -51,7 +53,7 @@ WPF：`xmlns:ani="clr-namespace:AnimationImage.WPF;assembly=AnimationImage.WPF"`
 </StackPanel>
 ```
 
-Avalonia（用法与WPF基本相同）：`xmlns:ani="using:AnimationImage.Avalonia"` 
+Avalonia（用法与WPF基本相同）：
 ```axaml
 <!-- 永久循环 -->
 <Image ani:AnimationBehavior.AnimatableBitmap="[path]"
@@ -74,6 +76,10 @@ public partial class App : Application
 ```
 
 ## ✈️更新日志
+v1.0.7  
+🐛 修复：修复Lottie文件初始化大小不准确以及帧率异常的问题。（**VS智能补全代码**害死人，稍不留神就出BUG）  
+🚨 重大变更：统一命名空间`xmlns:ani="https://github.com/LazyCuteLion/AnimationImage"`。
+
 v1.0.6  
 🧨 功能回归：全新的`GIF/WebP 预加载机制`：若解码速度不能满足帧率要求，则自动预加载，然后开启后台线程持续解码并缓存。可通过`AnimatableBitmapOptions.Default`来调整这一默认行为。  
 

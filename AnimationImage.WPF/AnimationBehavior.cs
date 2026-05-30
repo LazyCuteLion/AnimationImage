@@ -1,5 +1,4 @@
-﻿using AnimationImage.Core;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -11,7 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 
-namespace AnimationImage.WPF
+namespace AnimationImage
 {
     public class AnimationBehavior
     {
@@ -28,7 +27,7 @@ namespace AnimationImage.WPF
             obj.SetValue(ForceFPSProperty, value);
         }
         public static readonly DependencyProperty ForceFPSProperty =
-            DependencyProperty.RegisterAttached("ForceFPS", typeof(int), typeof(AnimationBehavior), new PropertyMetadata(0));
+            DependencyProperty.RegisterAttached("ForceFPS", typeof(int), typeof(AnimationBehavior), new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.Inherits));
 
         /**
          * 循环次数
@@ -43,11 +42,41 @@ namespace AnimationImage.WPF
             obj.SetValue(RepeatBehaviorProperty, value);
         }
         public static readonly DependencyProperty RepeatBehaviorProperty =
-            DependencyProperty.RegisterAttached("RepeatBehavior", typeof(RepeatBehavior?), typeof(AnimationBehavior), new PropertyMetadata(null));
+            DependencyProperty.RegisterAttached("RepeatBehavior", typeof(RepeatBehavior?), typeof(AnimationBehavior), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.Inherits));
 
         /**
-         * 动画时间点
+         * 是否自动开始播放
+         * 在设计器模式下，播放/停止
          * */
+        public static bool GetAutoStart(DependencyObject obj)
+        {
+            return (bool)obj.GetValue(AutoStartProperty);
+        }
+        public static void SetAutoStart(DependencyObject obj, bool value)
+        {
+            obj.SetValue(AutoStartProperty, value);
+        }
+        public static readonly DependencyProperty AutoStartProperty =
+            DependencyProperty.RegisterAttached("AutoStart", typeof(bool), typeof(AnimationBehavior), new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.Inherits, (s, e) =>
+            {
+#if DEBUG
+                if (GetAnimatableBitmap(s) is AnimatableBitmap b)
+                {
+                    // 设计器模式下，修改该值即时生效，当成播放控制
+                    if (DesignerProperties.GetIsInDesignMode(s))
+                    {
+                        if (e.NewValue.Equals(true))
+                            b.BeginCommand.Execute(null);
+                        else
+                            b.StopCommand.Execute(null);
+                    }
+                }
+#endif
+            }));
+
+        /**
+        * 动画时间点
+        * */
         public static double GetAnimationTime(DependencyObject obj)
         {
             return (double)obj.GetValue(AnimationTimeProperty);
@@ -66,35 +95,6 @@ namespace AnimationImage.WPF
             }));
 
         /**
-         * 是否自动开始播放
-         * 在设计器模式下，播放/停止
-         * */
-        public static bool GetAutoStart(DependencyObject obj)
-        {
-            return (bool)obj.GetValue(AutoStartProperty);
-        }
-        public static void SetAutoStart(DependencyObject obj, bool value)
-        {
-            obj.SetValue(AutoStartProperty, value);
-        }
-        public static readonly DependencyProperty AutoStartProperty =
-            DependencyProperty.RegisterAttached("AutoStart", typeof(bool), typeof(AnimationBehavior), new PropertyMetadata(true, (s, e) =>
-            {
-                if (GetAnimatableBitmap(s) is AnimatableBitmap b)
-                {
-                    if (DesignerProperties.GetIsInDesignMode(s))
-                    {
-                        // 设计器模式下，修改该值即时生效，当成播放控制
-                        if (e.NewValue.Equals(true))
-                            b.BeginCommand.Execute(null);
-                        else
-                            b.StopCommand.Execute(null);
-                    }
-                }
-            }));
-
-
-        /**
          * 获取或设置可动画的位图对象
          * */
         public static AnimatableBitmap GetAnimatableBitmap(DependencyObject obj)
@@ -106,7 +106,7 @@ namespace AnimationImage.WPF
             obj.SetValue(AnimatableBitmapProperty, value);
         }
         public static readonly DependencyProperty AnimatableBitmapProperty =
-            DependencyProperty.RegisterAttached("AnimatableBitmap", typeof(AnimatableBitmap), typeof(AnimationBehavior), new PropertyMetadata(null, async (s, e) =>
+            DependencyProperty.RegisterAttached("AnimatableBitmap", typeof(AnimatableBitmap), typeof(AnimationBehavior), new PropertyMetadata(null, (s, e) =>
             {
                 if (e.OldValue is AnimatableBitmap old)
                 {
@@ -118,10 +118,6 @@ namespace AnimationImage.WPF
                     if (s is FrameworkElement el)
                     {
                         b.AttachTarget(el);
-
-                        await el.WaitForLoadedAsync();
-                        if (GetAutoStart(s))
-                            b.BeginCommand.Execute(null);
                     }
                 }
             }));

@@ -1,5 +1,4 @@
-﻿using AnimationImage.Core;
-using Microsoft.VisualBasic;
+﻿using Microsoft.VisualBasic;
 using Microsoft.Win32;
 using SkiaSharp;
 using System.Diagnostics;

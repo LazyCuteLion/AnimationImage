@@ -1,5 +1,4 @@
-﻿using AnimationImage.Core;
-using SkiaSharp;
+﻿using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -20,7 +19,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 
-namespace AnimationImage.WPF
+namespace AnimationImage
 {
     public abstract partial class AnimatableBitmap
     {

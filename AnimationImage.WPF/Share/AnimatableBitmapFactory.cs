@@ -5,14 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using AnimationImage.Core;
 
-#if WPF
-namespace AnimationImage.WPF
-#endif
-#if AVALONIA
-namespace AnimationImage.Avalonia
-#endif
+namespace AnimationImage
 {
     public class AnimatableBitmapFactory
     {

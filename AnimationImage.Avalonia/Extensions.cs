@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.VisualTree;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace AnimationImage.Avalonia
+namespace AnimationImage
 {
     internal static class Extensions
     {
@@ -140,6 +141,64 @@ namespace AnimationImage.Avalonia
         {
             var size = LayoutInformation.GetPreviousMeasureConstraint(element);
             return new Size(size?.Width ?? 0, size?.Height ?? 0);
+        }
+
+        public static bool IsInWindowViewport(this Control control)
+        {
+            if (control == null)
+                return false;
+
+            if (!control.IsVisible || control.Bounds.Width == 0 || control.Bounds.Height == 0)
+                return false;
+
+            var window = TopLevel.GetTopLevel(control) as Window;
+
+            if (window == null || !window.IsVisible || window.WindowState == WindowState.Minimized)
+                return false;
+
+            // 当前元素的边界（相对于窗口）
+            var elementBounds = new Rect(control.Bounds.Size);
+            var topLeft = control.TranslatePoint(new Point(0, 0), window);
+            if (topLeft == null)
+                return false;
+
+            elementBounds = elementBounds.WithX(topLeft.Value.X).WithY(topLeft.Value.Y);
+
+            // 窗口的可视区域
+            var windowBounds = new Rect(window.Bounds.Size);
+
+            // 向上遍历父容器，检查是否在每个容器的可视范围内
+            var ancestor = control.GetVisualParent();
+            while (ancestor != null && ancestor != window)
+            {
+                if (ancestor is Control fe)
+                {
+                    if (!fe.IsVisible || fe.Bounds.Width == 0 || fe.Bounds.Height == 0)
+                        return false;
+
+                    var ancestorBounds = new Rect(fe.Bounds.Size);
+                    var ancestorTopLeft = control.TranslatePoint(new Point(0, 0), fe);
+                    if (ancestorTopLeft == null)
+                        return false;
+
+                    var relativeBounds = new Rect(
+                        ancestorTopLeft.Value.X,
+                        ancestorTopLeft.Value.Y,
+                        elementBounds.Width,
+                        elementBounds.Height);
+
+                    if (!ancestorBounds.Intersects(relativeBounds))
+                        return false;
+
+                    // 更新 elementBounds 为相对于当前 ancestor 的位置
+                    elementBounds = relativeBounds;
+                }
+
+                ancestor = ancestor.GetVisualParent();
+            }
+
+            // 最后检查是否在窗口范围内
+            return windowBounds.Intersects(elementBounds);
         }
     }
 }

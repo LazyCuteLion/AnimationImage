@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
-namespace AnimationImage.Core
+namespace AnimationImage
 {
     internal class RelayCommand : ICommand
     {

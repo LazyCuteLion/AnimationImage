@@ -1,5 +1,4 @@
-﻿using AnimationImage.Core;
-using SkiaSharp;
+﻿using SkiaSharp;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -18,14 +17,13 @@ using System.Collections.Generic;
 
 #if AVALONIA
 using Avalonia.Media.Imaging;
-namespace AnimationImage.Avalonia
 #endif
 
 #if WPF
 using System.Windows.Media.Imaging;
-namespace AnimationImage.WPF
 #endif
 
+namespace AnimationImage
 {
     internal record FrameData
     {
@@ -136,11 +134,6 @@ namespace AnimationImage.WPF
             var result = FrameData.Empty;
             try
             {
-                if (data.Index == _frameCount - 1)
-                {
-                    data = new FrameData(0, data.Bitmap);
-                }
-
                 if (data.Index > index)
                 {
                     //回退只能从头解码，参考帧设为-1，让解码器自动处理，可能会耗时较长

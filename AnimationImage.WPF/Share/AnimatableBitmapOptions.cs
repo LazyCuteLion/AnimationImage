@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace AnimationImage.Core
+namespace AnimationImage
 {
     /// <summary>
     /// 初始化配置

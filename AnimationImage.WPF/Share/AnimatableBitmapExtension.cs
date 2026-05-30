@@ -1,5 +1,4 @@
-﻿using AnimationImage.Core;
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
@@ -13,7 +12,6 @@ using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
-namespace AnimationImage.WPF
 #endif
 
 #if AVALONIA
@@ -25,9 +23,9 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using FrameworkElement = Avalonia.Controls.Control;
 using DependencyProperty = Avalonia.AvaloniaProperty;
-
-namespace AnimationImage.Avalonia
 #endif
+
+namespace AnimationImage
 {
     public class AnimatableBitmapExtension : MarkupExtension
     {
@@ -52,6 +50,9 @@ namespace AnimationImage.Avalonia
 
         public override object ProvideValue(IServiceProvider serviceProvider)
         {
+            if (Source == null)
+                return null;
+
             var targetProvider = serviceProvider.GetService(typeof(IProvideValueTarget)) as IProvideValueTarget;
 
             if (targetProvider?.TargetObject is FrameworkElement target
