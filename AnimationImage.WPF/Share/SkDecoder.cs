@@ -56,6 +56,11 @@ namespace AnimationImage
         public SkDecoder(Stream stream, int preloadCount)
         {
             _codec = SKCodec.Create(stream);
+
+            if (_codec == null)
+                return;
+            //throw new NotSupportedException("创建解码器失败");
+
             _frameCount = _codec.FrameCount;
 
             _codecInfo = AnimatableBitmap.CreateDecodeInfo(_codec.Info.Width, _codec.Info.Height);
@@ -199,7 +204,13 @@ namespace AnimationImage
 
                 var frame = this.GetFrame(data.Bitmap);
                 var result = SKCodecResult.Unimplemented;
-                var frameInfo = _codec.FrameInfo[index];
+                var frameInfo = _codec.FrameInfo.Length > index
+                                ? _codec.FrameInfo[index]
+                                : new SKCodecFrameInfo()
+                                {
+                                    FrameRect = new SKRectI(0, 0, _codec.Info.Width, _codec.Info.Height),
+                                    RequiredFrame = -1
+                                };
 
                 if (data.Index > index)
                 {
