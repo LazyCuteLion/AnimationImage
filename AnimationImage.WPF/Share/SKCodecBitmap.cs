@@ -1,115 +1,199 @@
-﻿using System.Diagnostics;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Buffers;
+using System.Diagnostics;
+using System.IO;
+using System.IO.MemoryMappedFiles;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
+using SkiaSharp;
 using System;
+using System.Collections.Generic;
 
 #if WPF
-using System.Windows.Input;
+using System.Windows.Media.Imaging;
 #endif
+
 #if AVALONIA
-using Avalonia.Input;
+using Avalonia.Media.Imaging;
 #endif
+
 namespace AnimationImage
 {
-    /// <summary>
-    /// 基于 SkiaSharp.SKCodec 的动画
-    /// </summary>
-    /// <remarks>
-    /// <para>注意：</para>
-    /// <list type="bullet">
-    ///   <item>启用全量帧缓存，内存占用会很大，但可以极大提高帧率，很好的支持进度条控制、反向播放</item>
-    /// </list>
-    /// </remarks>
     internal class SKCodecBitmap : AnimatableBitmap
     {
         #region 字段
-        private readonly SkDecoder _decoder;
+        private MMFFrameCache? _frameCache;
+        private SKCodec? _codec;
         private readonly int _frameCount;
-        private readonly List<double> _durations = new();
+        private readonly SKImageInfo _codecInfo;
+        private readonly SKCodecFrameInfo[] _frameInfo;
+        private readonly List<double> _durations = [];
         private int _currentIndex = -1;
-        private bool _isLoading = false;
+        private CancellationTokenSource _loadToken = new();
+        private readonly AnimatableBitmapOptions _options;
+        private CancellationTokenSource _renderToken;
         #endregion
 
         public SKCodecBitmap(AnimatableBitmapOptions options) : base(options)
         {
-            //暂时先只处理本地文件
-            _decoder = new SkDecoder(_stream, options.PreloadCount);
-            if (_decoder.SKCodec == null)
+            _options = options;
+            var md5 = _stream.MD5HexString();
+            _codec = SKCodec.Create(_stream);
+            if (_codec == null)
             {
-                this.State = AnimationState.Error;
+                State = AnimationState.Error;
                 return;
             }
-            _frameCount = _decoder.SKCodec?.FrameCount ?? 0;
+            _frameCount = Math.Max(1, _codec.FrameCount);
+            _frameInfo = _codec.FrameInfo is { Length: > 0 }
+                ? _codec.FrameInfo
+                : [new SKCodecFrameInfo() { FrameRect = _codec.Info.Rect, RequiredFrame = -1 }];
+
             var duration = 0.0;
             // 计算累计时间轴（每帧的结束时间点，毫秒）
             if (_frameCount > 1)
             {
                 for (int i = 0; i < _frameCount; i++)
                 {
-                    var info = _decoder.SKCodec.FrameInfo[i];
-                    duration += info.Duration;
+                    duration += _codec.FrameInfo[i].Duration;
                     _durations.Add(duration);
                 }
             }
 
-            this.Metadata = new Metadata(_decoder.SKCodec.Info.Width,
-                                      _decoder.SKCodec.Info.Height,
-                                      duration,
-                                      _frameCount,
-                                      duration > 0 ? (int)(_frameCount * 1000 / duration) : 0,
-                                      _decoder.SKCodec.RepetitionCount);
+            Metadata = new Metadata(_codec.Info.Width,
+                _codec.Info.Height,
+                duration,
+                _frameCount,
+                duration > 0 ? (int)(_frameCount * 1000 / duration) : 0,
+                _codec.RepetitionCount);
 
-            var data = _decoder.Get(0);
-            this.Frame = !data.IsEmpty ? data.Bitmap : CreateNewFrame(Metadata.PixelWidth, Metadata.PixelHeight);
-            _currentIndex = data.Index;
+            _codecInfo = CreateDecodeInfo(_codec.Info.Width, _codec.Info.Height);
+
+            Frame = CreateNewFrame(_codecInfo.Width, _codecInfo.Height);
+
+            if (_options.Preload)
+            {
+                try
+                {
+                    _frameCache = new MMFFrameCache(md5, _frameCount, _codec.Info.BytesSize);
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine($"{e.Message}将使用即时解码");
+                }
+            }
+
+            if (_frameCache != null)
+            {
+                LoadAsync();
+                while (_frameCache.LoadedCount < 1)
+                {
+                    Thread.Sleep(10);
+                }
+            }
+
+            Render(0);
         }
 
+        private bool _disposed;
         protected override void Dispose(bool disposing)
         {
             if (_disposed)
                 return;
+            _disposed = true;
+
             if (disposing)
             {
-                _decoder.Dispose();
+                _renderToken?.Cancel();
+                _renderToken?.Dispose();
+                _loadToken?.Cancel();
+                _loadToken?.Dispose();
+                _codec?.Dispose();
                 _durations.Clear();
+                _frameCache?.Dispose();
             }
             base.Dispose(disposing);
         }
 
-        public override bool IsAnimatable => base.IsAnimatable
-                            && _frameCount > 0
-                            && !_isLoading;
+        public override bool IsAnimatable => base.IsAnimatable && _frameCount > 0;
 
         /// <summary>
         /// 跳转到指定时间点（毫秒）
         /// </summary>
-        /// <param name="milliseconds"></param>
         internal override void SeekTime(double milliseconds)
         {
-            if (!this.IsAnimatable || _isLoading)
+            if (!IsAnimatable)
                 return;
 
             var index = TimeToIndex(milliseconds);
-            
+
             try
             {
                 if (index < 0 || index > _frameCount - 1 || index == _currentIndex)
                     return;
-
-                var data = _decoder.Get(index, new FrameData(_currentIndex, this.Frame));
-                if (!data.IsEmpty && data.Bitmap != this.Frame)
-                {
-                    this.Frame = data.Bitmap;
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine($"SeekTime({milliseconds}->{index})错误：{e.Message}");
+                Render(index);
             }
             finally
             {
                 _currentIndex = index;
                 base.SeekTime(milliseconds);
+            }
+        }
+
+        private async void Render(int index)
+        {
+#if DEBUG
+            var st = Stopwatch.StartNew();
+#endif
+            try
+            {
+                var success = false;
+                var rect = _frameInfo[index].FrameRect;
+                using var b = Frame.LockScope();
+                if (_frameCache != null)
+                {
+                    _renderToken?.Cancel();
+                    success = _frameCache.TryGet(index, b.Address);
+                    if (!success)
+                    {
+                        var time = _frameInfo[index].Duration * 0.8;
+                        _renderToken = new CancellationTokenSource(TimeSpan.FromMilliseconds(time));
+                        while (!_renderToken.IsCancellationRequested)
+                        {
+                            try
+                            {
+                                await Task.Delay(5, _renderToken.Token);
+                                success = _frameCache.TryGet(index, b.Address);
+                                if (success)
+                                    break;
+                            }
+                            catch (OperationCanceledException) { break; }
+                        }
+                    }
+                }
+                else
+                {
+                    success = Decode(index, b.Address, out rect);
+                }
+
+                if (success)
+                {
+                    b.Update(rect);
+                    _currentIndex = index;
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"SeekTime({index:000})错误：{e.Message}");
+            }
+            finally
+            {
+#if DEBUG
+                st.Stop();
+                Debug.WriteLine($"SeekTime({index:000})耗时：{st.ElapsedMilliseconds}");
+#endif
             }
         }
 
@@ -119,8 +203,6 @@ namespace AnimationImage
         /// <remarks>
         /// 先尝试基于当前帧的局部判断（n-1,n,n+1），若不命中则使用二分查找
         /// </remarks>
-        /// <param name="milliseconds">时间（毫秒）</param>
-        /// <returns>帧索引</returns>
         private int TimeToIndex(double milliseconds)
         {
             if (milliseconds == 0 || _durations.Count <= 1)
@@ -158,23 +240,123 @@ namespace AnimationImage
             return index;
         }
 
-        protected override async void BeginAnimation()
+        private bool Decode(int index, nint address, out SKRectI rect)
         {
-            if (!IsAnimatable
-               || State == AnimationState.Playing
-               || State == AnimationState.Error
-               || _isLoading)
+            rect = new SKRectI(0, 0, 1, 1);
+
+            if (_disposed || _codec == null || address == IntPtr.Zero)
+                return false;
+
+            var frameInfo = _frameInfo[index];
+            var requiredFrame = frameInfo.RequiredFrame;
+
+            if (index == 0 || index < _currentIndex || requiredFrame == -1)
+            {
+                Debug.WriteLineIf(index < _currentIndex, $"回退解码：{_currentIndex}->{index}");
+                var result = _codec.GetPixels(_codecInfo, address, new SKCodecOptions(index, -1) { ZeroInitialized = SKZeroInitialized.No });
+                if (result == SKCodecResult.Success)
+                {
+                    rect = frameInfo.FrameRect;
+                }
+                return result == SKCodecResult.Success;
+            }
+
+            var priorFrame = _currentIndex;
+            if (priorFrame > requiredFrame)
+            {
+                // 把参考帧重置为-1，让解码器自动处理
+                priorFrame = -1;
+            }
+            var decodeResult = _codec.GetPixels(_codecInfo, address, new SKCodecOptions(index, priorFrame));
+            if (decodeResult == SKCodecResult.Success)
+            {
+                rect = frameInfo.FrameRect;
+            }
+            else if (index - _currentIndex > 1)
+            {
+                Debug.WriteLine($"跳帧解码：{_currentIndex}->{index}");
+                // 若解码失败，且发生了跳帧，则尝试按顺序解码
+                var options = new SKCodecOptions();
+                for (int i = _currentIndex + 1; i <= index; i++)
+                {
+                    if (!_codec.GetFrameInfo(i, out var info))
+                        continue;
+
+                    // 非Keep的可以跳过
+                    if (info.DisposalMethod != SKCodecAnimationDisposalMethod.Keep)
+                        continue;
+
+                    options.FrameIndex = i;
+                    options.PriorFrame = i - 1;
+                    decodeResult = _codec.GetPixels(_codecInfo, address, options);
+                    // 若解码失败，使用依赖帧再次尝试
+                    if (decodeResult != SKCodecResult.Success)
+                    {
+                        options.PriorFrame = -1;
+                        decodeResult = _codec.GetPixels(_codecInfo, address, options);
+                    }
+                    // 若还是失败，那就失败了，无可奈何
+                    if (decodeResult != SKCodecResult.Success)
+                    {
+                        _currentIndex = i - 1;
+                        break;
+                    }
+                }
+                if (decodeResult == SKCodecResult.Success)
+                    rect = _codecInfo.Rect;
+            }
+
+            return decodeResult == SKCodecResult.Success;
+        }
+
+        private void LoadAsync()
+        {
+            if (_frameCache == null || !_frameCache.CanWrite)
                 return;
 
-            if (State != AnimationState.Paused)
+            Task.Run(() =>
             {
-                _isLoading = true;
-                this.UpdateCommandState();
-                await _decoder.PreloadAsync();
-                _isLoading = false;
-                this.UpdateCommandState();
-            }
-            base.BeginAnimation();
+                var buffer = ArrayPool<byte>.Shared.Rent(_codecInfo.BytesSize);
+                var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+                try
+                {
+                    var address = handle.AddrOfPinnedObject();
+                    for (var i = 0; i < _frameCount; i++)
+                    {
+                        if (_loadToken.IsCancellationRequested)
+                            break;
+
+                        var options = new SKCodecOptions(i, i - 1) { ZeroInitialized = SKZeroInitialized.No };
+                        var result = _codec!.GetPixels(_codecInfo, address, options);
+                        if (result != SKCodecResult.Success && i > 0)
+                        {
+                            options.PriorFrame = _frameInfo[i].RequiredFrame;
+                            if (options.PriorFrame != -1)
+                            {
+                                if (!_frameCache.TryGet(options.PriorFrame, address))
+                                {
+                                    options.PriorFrame = -1;
+                                }
+                            }
+                            result = _codec!.GetPixels(_codecInfo, address, options);
+                        }
+                        if (result == SKCodecResult.Success)
+                        {
+                            _frameCache.TryAdd(i, address);
+                        }
+                        else
+                        {
+                            Debug.WriteLine($"Decode({i})失败");
+                        }
+                    }
+                }
+                finally
+                {
+                    File.SetLastWriteTime(_frameCache.TempPath, DateTime.Now);
+                    handle.Free();
+                    ArrayPool<byte>.Shared.Return(buffer);
+                }
+            }, _loadToken.Token);
         }
     }
 }

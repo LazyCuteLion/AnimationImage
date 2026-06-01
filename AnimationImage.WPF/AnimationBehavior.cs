@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Animation;
@@ -14,10 +9,10 @@ namespace AnimationImage
 {
     public class AnimationBehavior
     {
-        /**
-         * 强制使用指定帧率，依赖于显示器刷新率以及机器性能
-         * 0：默认值，表示使用动画本身的帧率
-         **/
+        /// <summary>
+        /// 强制使用指定帧率，依赖于显示器刷新率以及机器性能。
+        /// 0：默认值，表示使用动画本身的帧率
+        /// </summary>
         public static int GetForceFPS(DependencyObject obj)
         {
             return (int)obj.GetValue(ForceFPSProperty);
@@ -27,12 +22,13 @@ namespace AnimationImage
             obj.SetValue(ForceFPSProperty, value);
         }
         public static readonly DependencyProperty ForceFPSProperty =
-            DependencyProperty.RegisterAttached("ForceFPS", typeof(int), typeof(AnimationBehavior), new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.Inherits));
+            DependencyProperty.RegisterAttached("ForceFPS", typeof(int), typeof(AnimationBehavior),
+                new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.Inherits));
 
-        /**
-         * 循环次数
-         * null：默认值，表示使用动画本身的循环设置
-         **/
+        /// <summary>
+        /// 循环次数。
+        /// null：默认值，表示使用动画本身的循环设置
+        /// </summary>
         public static RepeatBehavior? GetRepeatBehavior(DependencyObject obj)
         {
             return (RepeatBehavior?)obj.GetValue(RepeatBehaviorProperty);
@@ -42,12 +38,13 @@ namespace AnimationImage
             obj.SetValue(RepeatBehaviorProperty, value);
         }
         public static readonly DependencyProperty RepeatBehaviorProperty =
-            DependencyProperty.RegisterAttached("RepeatBehavior", typeof(RepeatBehavior?), typeof(AnimationBehavior), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.Inherits));
+            DependencyProperty.RegisterAttached("RepeatBehavior", typeof(RepeatBehavior?), typeof(AnimationBehavior),
+                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.Inherits));
 
-        /**
-         * 是否自动开始播放
-         * 在设计器模式下，播放/停止
-         * */
+        /// <summary>
+        /// 是否自动开始播放。
+        /// 在设计器模式下，播放/停止
+        /// </summary>
         public static bool GetAutoStart(DependencyObject obj)
         {
             return (bool)obj.GetValue(AutoStartProperty);
@@ -57,26 +54,26 @@ namespace AnimationImage
             obj.SetValue(AutoStartProperty, value);
         }
         public static readonly DependencyProperty AutoStartProperty =
-            DependencyProperty.RegisterAttached("AutoStart", typeof(bool), typeof(AnimationBehavior), new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.Inherits, (s, e) =>
-            {
-#if DEBUG
-                if (GetAnimatableBitmap(s) is AnimatableBitmap b)
+            DependencyProperty.RegisterAttached("AutoStart", typeof(bool), typeof(AnimationBehavior),
+                new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.Inherits, (s, e) =>
                 {
-                    // 设计器模式下，修改该值即时生效，当成播放控制
-                    if (DesignerProperties.GetIsInDesignMode(s))
+#if DEBUG
+                    if (GetAnimatableBitmap(s) is AnimatableBitmap b)
                     {
-                        if (e.NewValue.Equals(true))
-                            b.BeginCommand.Execute(null);
-                        else
-                            b.StopCommand.Execute(null);
+                        if (DesignerProperties.GetIsInDesignMode(s))
+                        {
+                            if (e.NewValue.Equals(true))
+                                b.BeginCommand.Execute(null);
+                            else
+                                b.StopCommand.Execute(null);
+                        }
                     }
-                }
 #endif
-            }));
+                }));
 
-        /**
-        * 动画时间点
-        * */
+        /// <summary>
+        /// 动画时间点
+        /// </summary>
         public static double GetAnimationTime(DependencyObject obj)
         {
             return (double)obj.GetValue(AnimationTimeProperty);
@@ -86,17 +83,18 @@ namespace AnimationImage
             obj.SetValue(AnimationTimeProperty, value);
         }
         public static readonly DependencyProperty AnimationTimeProperty =
-            DependencyProperty.RegisterAttached("AnimationTime", typeof(double), typeof(AnimationBehavior), new PropertyMetadata(0.0, (s, e) =>
-            {
-                if (GetAnimatableBitmap(s) is AnimatableBitmap b)
+            DependencyProperty.RegisterAttached("AnimationTime", typeof(double), typeof(AnimationBehavior),
+                new PropertyMetadata(0.0, (s, e) =>
                 {
-                    b.SeekTime((double)e.NewValue);
-                }
-            }));
+                    if (GetAnimatableBitmap(s) is AnimatableBitmap b)
+                    {
+                        b.SeekTime((double)e.NewValue);
+                    }
+                }));
 
-        /**
-         * 获取或设置可动画的位图对象
-         * */
+        /// <summary>
+        /// 获取或设置可动画的位图对象
+        /// </summary>
         public static AnimatableBitmap GetAnimatableBitmap(DependencyObject obj)
         {
             return (AnimatableBitmap)obj.GetValue(AnimatableBitmapProperty);
@@ -106,21 +104,21 @@ namespace AnimationImage
             obj.SetValue(AnimatableBitmapProperty, value);
         }
         public static readonly DependencyProperty AnimatableBitmapProperty =
-            DependencyProperty.RegisterAttached("AnimatableBitmap", typeof(AnimatableBitmap), typeof(AnimationBehavior), new PropertyMetadata(null, (s, e) =>
-            {
-                if (e.OldValue is AnimatableBitmap old)
+            DependencyProperty.RegisterAttached("AnimatableBitmap", typeof(AnimatableBitmap), typeof(AnimationBehavior),
+                new PropertyMetadata(null, (s, e) =>
                 {
-                    old.Dispose();
-                }
-
-                if (e.NewValue is AnimatableBitmap b)
-                {
-                    if (s is FrameworkElement el)
+                    if (e.OldValue is AnimatableBitmap old)
                     {
-                        b.AttachTarget(el);
+                        old.Dispose();
                     }
-                }
-            }));
 
+                    if (e.NewValue is AnimatableBitmap b)
+                    {
+                        if (s is FrameworkElement el)
+                        {
+                            b.AttachTarget(el);
+                        }
+                    }
+                }));
     }
 }

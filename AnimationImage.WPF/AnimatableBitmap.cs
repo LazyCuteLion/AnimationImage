@@ -1,16 +1,8 @@
 ﻿using SkiaSharp;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -28,7 +20,7 @@ namespace AnimationImage
             Target = target;
             if (Target is Image img)
             {
-                img.SetBinding(Image.SourceProperty, new Binding(nameof(this.Frame)) { Source = this });
+                img.SetBinding(Image.SourceProperty, new Binding(nameof(Frame)) { Source = this });
             }
             await Target.WaitForLoadedAsync();
             Target.IsVisibleChanged += Target_IsVisibleChanged;
@@ -38,7 +30,7 @@ namespace AnimationImage
                 win.StateChanged += Window_StateChanged;
             }
             if (AnimationBehavior.GetAutoStart(target))
-                this.BeginAnimation();
+                BeginAnimation();
         }
 
         private void Target_Unloaded(object sender, RoutedEventArgs e)
@@ -46,7 +38,7 @@ namespace AnimationImage
             if (sender is FrameworkElement el)
             {
                 el.Unloaded -= Target_Unloaded;
-                this.Dispose(true);
+                Dispose(true);
             }
         }
 
@@ -57,13 +49,13 @@ namespace AnimationImage
             {
                 if (win.WindowState == WindowState.Minimized && State == AnimationState.Playing)
                 {
-                    this.PauseAnimation();
+                    PauseAnimation();
                     _waitForResume = true;
                 }
                 else if (_waitForResume)
                 {
                     _waitForResume = false;
-                    this.BeginAnimation();
+                    BeginAnimation();
                 }
             }
         }
@@ -73,13 +65,13 @@ namespace AnimationImage
             if (Target == null) return;
             if (e.NewValue.Equals(false) && State == AnimationState.Playing)
             {
-                this.PauseAnimation();
+                PauseAnimation();
                 _waitForResume = true;
             }
             else if (_waitForResume)
             {
                 _waitForResume = false;
-                this.BeginAnimation();
+                BeginAnimation();
             }
         }
 
@@ -87,6 +79,7 @@ namespace AnimationImage
         {
             if (_disposed)
                 return;
+            _disposed = true;
             if (disposing)
             {
                 if (_storyboard != null)
@@ -106,40 +99,39 @@ namespace AnimationImage
                     Target = null;
                 }
 
-                this.Frame = null;
+                Frame = null;
 
                 _stream?.Dispose();
 
                 _tpsWatcher?.Stop();
             }
-            _disposed = true;
         }
 
         protected Storyboard _storyboard;
         private void CreateAnimation()
         {
-            var repeatBehavior = AnimationBehavior.GetRepeatBehavior(Target) ??
-                                (this.Metadata.LoopCount == -1
-                                  ? RepeatBehavior.Forever
-                                  : new RepeatBehavior(this.Metadata.LoopCount + 1));
+            var repeatBehavior = AnimationBehavior.GetRepeatBehavior(Target)
+                ?? (Metadata.LoopCount == -1
+                    ? RepeatBehavior.Forever
+                    : new RepeatBehavior(Metadata.LoopCount + 1));
             _storyboard = new Storyboard()
             {
                 RepeatBehavior = repeatBehavior,
                 FillBehavior = FillBehavior.Stop
             };
-            var animation = new DoubleAnimation(0, this.Metadata.Duration, TimeSpan.FromMilliseconds(this.Metadata.Duration));
+            var animation = new DoubleAnimation(0, Metadata.Duration, TimeSpan.FromMilliseconds(Metadata.Duration));
             Storyboard.SetTargetProperty(animation, new PropertyPath(AnimationBehavior.AnimationTimeProperty));
             Storyboard.SetTarget(animation, Target);
             _storyboard.Children.Add(animation);
             var forceFPS = AnimationBehavior.GetForceFPS(Target);
-            Timeline.SetDesiredFrameRate(_storyboard, forceFPS > 0 ? forceFPS : this.Metadata.FPS);
+            Timeline.SetDesiredFrameRate(_storyboard, forceFPS > 0 ? forceFPS : Metadata.FPS);
             _storyboard.Completed += OnCompleted;
         }
 
         protected virtual void OnCompleted(object? sender, EventArgs e)
         {
-            var time = this.CurrentTime;
-            this.State = AnimationState.Completed;
+            var time = CurrentTime;
+            State = AnimationState.Completed;
             AnimationBehavior.SetAnimationTime(Target, time);
             CommandManager.InvalidateRequerySuggested();
         }
@@ -164,16 +156,16 @@ namespace AnimationImage
             }
 
             if (_storyboard == null)
-                this.CreateAnimation();
+                CreateAnimation();
             else
             {
-                _storyboard.RepeatBehavior = AnimationBehavior.GetRepeatBehavior(Target) ??
-                                            (this.Metadata.LoopCount == -1
-                                              ? RepeatBehavior.Forever
-                                              : new RepeatBehavior(this.Metadata.LoopCount + 1));
+                _storyboard.RepeatBehavior = AnimationBehavior.GetRepeatBehavior(Target)
+                    ?? (Metadata.LoopCount == -1
+                        ? RepeatBehavior.Forever
+                        : new RepeatBehavior(Metadata.LoopCount + 1));
 
                 var forceFPS = AnimationBehavior.GetForceFPS(Target);
-                Timeline.SetDesiredFrameRate(_storyboard, forceFPS > 0 ? forceFPS : this.Metadata.FPS);
+                Timeline.SetDesiredFrameRate(_storyboard, forceFPS > 0 ? forceFPS : Metadata.FPS);
             }
 
             _storyboard.Begin();
@@ -183,8 +175,8 @@ namespace AnimationImage
                 _storyboard.Seek(TimeSpan.FromMilliseconds(CurrentTime));
             }
 
-            this.State = AnimationState.Playing;
-            this.UpdateCommandState();
+            State = AnimationState.Playing;
+            UpdateCommandState();
         }
 
         protected virtual void PauseAnimation()
@@ -192,20 +184,20 @@ namespace AnimationImage
             if (State != AnimationState.Playing)
                 return;
             _storyboard?.Pause();
-            this.State = AnimationState.Paused;
-            this.UpdateCommandState();
+            State = AnimationState.Paused;
+            UpdateCommandState();
         }
 
         protected virtual void StopAnimation()
         {
+            _storyboard?.Stop();
+            State = AnimationState.Stopped;
             if (Target != null)
             {
                 Target.BeginAnimation(AnimationBehavior.AnimationTimeProperty, null);
-                AnimationBehavior.SetAnimationTime(Target, 0);
+                AnimationBehavior.SetAnimationTime(Target, 0.0);
             }
-            _storyboard?.Stop();
-            this.State = AnimationState.Stopped;
-            this.UpdateCommandState();
+            UpdateCommandState();
         }
 
         protected void UpdateCommandState()

@@ -1,8 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 #if WPF
 using System.Windows;
@@ -11,7 +8,6 @@ using System.Windows.Data;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Shapes;
-
 #endif
 
 #if AVALONIA
@@ -32,23 +28,21 @@ namespace AnimationImage
         [TypeConverter(typeof(UriTypeConverter))]
         public Uri Source { get; set; }
 
-        public int PreloadCount { get; set; } = AnimatableBitmapOptions.Default.PreloadCount;
-
-        public double RenderScale { get; set; } = AnimatableBitmapOptions.Default.RenderScale;
-
         public bool UseGPU { get; set; } = AnimatableBitmapOptions.Default.UseGPU;
+
+        public bool Preload { get; set; } = AnimatableBitmapOptions.Default.Preload;
 
         public AnimatableBitmapOptions ToOptions()
         {
-            return new AnimatableBitmapOptions(this.Source, this.PreloadCount, this.RenderScale, this.UseGPU);
+            return new AnimatableBitmapOptions(Source, UseGPU, Preload);
         }
 
         public AnimatableBitmapExtension(Uri source)
         {
-            this.Source = source;
+            Source = source;
         }
 
-        public override object ProvideValue(IServiceProvider serviceProvider)
+        public override object? ProvideValue(IServiceProvider serviceProvider)
         {
             if (Source == null)
                 return null;
@@ -58,7 +52,7 @@ namespace AnimationImage
             if (targetProvider?.TargetObject is FrameworkElement target
              && targetProvider?.TargetProperty is DependencyProperty property)
             {
-                var bitmap = AnimatableBitmapFactory.Default.Create(this.ToOptions());
+                var bitmap = AnimatableBitmapFactory.Default.Create(ToOptions());
                 if (property == AnimationBehavior.AnimatableBitmapProperty)
                 {
                     return bitmap;
@@ -95,6 +89,5 @@ namespace AnimationImage
 
             return null;
         }
-
     }
 }

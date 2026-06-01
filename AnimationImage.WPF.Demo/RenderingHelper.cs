@@ -46,8 +46,10 @@ namespace AnimationImage.WPF.Demo
                                                    12,
                                                    Brushes.White,
                                                    VisualTreeHelper.GetDpi(this).PixelsPerDip);
-
+            
+            drawingContext.DrawRectangle(new SolidColorBrush(Color.FromArgb(125, 0, 0, 0)), null, new Rect(5, 5, formattedText.Width + 10, formattedText.Height + 10));
             drawingContext.DrawText(formattedText, new Point(10, 10));
+           
         }
 
         public void Stop()

@@ -15,7 +15,7 @@ namespace AnimationImage.WPF.Demo
             //AnimatableBitmapOptions.Default = new AnimatableBitmapOptions()
             //{
             //    UseGPU = false,//禁用显卡加速
-            //    PreloadCount = PreloadOptions.Disable,//禁用预加载和缓存
+            //    Preload = false,//禁用预解析帧数据到内存映射
             //};
             base.OnStartup(e);
         }

@@ -26,12 +26,12 @@ namespace AnimationImage
 
         public AnimatableBitmap Create(string path)
         {
-            return this.Create(new AnimatableBitmapOptions(path));
+            return Create(new AnimatableBitmapOptions(path));
         }
 
         public AnimatableBitmap Create(Uri source)
         {
-            return this.Create(new AnimatableBitmapOptions(source));
+            return Create(new AnimatableBitmapOptions(source));
         }
 
         public AnimatableBitmap Create(AnimatableBitmapOptions options)
@@ -50,8 +50,8 @@ namespace AnimationImage
 
         private AnimatableBitmapFactory()
         {
-            this.Register(".json", (options) => new SkottieBitmap(options));
-            this.RegisterDefault((options) => new SKCodecBitmap(options));
+            Register(".json", (options) => new SkottieBitmap(options));
+            RegisterDefault((options) => new SKCodecBitmap(options));
         }
 
         private static readonly Lazy<AnimatableBitmapFactory> _lazy = new(() => new AnimatableBitmapFactory());

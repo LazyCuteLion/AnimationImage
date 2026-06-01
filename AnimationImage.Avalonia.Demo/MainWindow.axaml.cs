@@ -38,10 +38,9 @@ namespace AnimationImage.Avalonia.Demo
             });
             if (file?.Count > 0)
             {
-                //查看启用显卡加速的影响
                 var bitmap = AnimatableBitmapFactory.Default.Create(new AnimatableBitmapOptions(file[0].Path,
-                                                                    preloadCount: int.Parse(tbPreloadCount.Text),
-                                                                    useGPU: cbUseGPU.IsChecked ?? false));
+                                                                    useGPU: cbUseGPU.IsChecked ?? false,
+                                                                    preload: cbPreload.IsChecked ?? false));
                 AnimationBehavior.SetAnimatableBitmap(view, bitmap);
             }
         }

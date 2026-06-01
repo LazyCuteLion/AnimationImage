@@ -32,10 +32,15 @@ namespace AnimationImage.WPF.Demo
             var dialog = new OpenFileDialog();
             if (dialog.ShowDialog() == true)
             {
-                var s = AnimatableBitmapFactory.Default.Create(new AnimatableBitmapOptions(dialog.FileName,
-                                                               preloadCount: int.Parse(tbPreloadCount.Text),
-                                                               useGPU: cbUseGPU.IsChecked ?? false));
+                var options = new AnimatableBitmapOptions(dialog.FileName,
+                                                          useGPU: cbUseGPU.IsChecked ?? false,
+                                                          preload: cbPreload.IsChecked ?? false);
+
+                var s = AnimatableBitmapFactory.Default.Create(options);
                 AnimationBehavior.SetAnimatableBitmap(img, s);
+
+                //var s2 = AnimatableBitmapFactory.Default.Create(options);
+                //AnimationBehavior.SetAnimatableBitmap(img2, s2);
             }
         }
     }

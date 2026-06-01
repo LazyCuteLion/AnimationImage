@@ -5,16 +5,10 @@ using Avalonia.Data;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Styling;
-using SkiaSharp;
 using System;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
-using System.Net.Http;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using FrameworkElement = Avalonia.Controls.Control;
 
 namespace AnimationImage
@@ -27,7 +21,7 @@ namespace AnimationImage
                 return;
             if (disposing)
             {
-                //释放托管资源
+                // 释放托管资源
                 _animationToken?.Cancel();
                 _animationToken?.Dispose();
 
@@ -41,13 +35,13 @@ namespace AnimationImage
                     Target = null;
                 }
 
-                this.Frame?.Dispose();
+                Frame?.Dispose();
 
                 _stream?.Dispose();
 
                 _tpsWatcher?.Stop();
             }
-            //释放非托管资源
+            // 释放非托管资源
             _disposed = true;
         }
 
@@ -56,7 +50,7 @@ namespace AnimationImage
             Target = target;
             if (Target is Image img)
             {
-                img.Bind(Image.SourceProperty, new Binding(nameof(this.Frame)) { Source = this });
+                img.Bind(Image.SourceProperty, new Binding(nameof(Frame)) { Source = this });
             }
             await Target.WaitForLoadedAsync();
             Target.PropertyChanged += Target_PropertyChanged;
@@ -66,7 +60,7 @@ namespace AnimationImage
                 win.PropertyChanged += Target_PropertyChanged;
             }
             if (AnimationBehavior.GetAutoStart(target))
-                this.BeginAnimation();
+                BeginAnimation();
         }
 
         private void Target_DetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
@@ -74,24 +68,24 @@ namespace AnimationImage
             if (sender is FrameworkElement el)
             {
                 el.DetachedFromVisualTree -= Target_DetachedFromVisualTree;
-                this.Dispose(true);
+                Dispose(true);
             }
         }
 
         private void Target_PropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
         {
-            if (Target == null) return;
+            if (Target == null || _disposed) return;
             if (e.Property == FrameworkElement.IsVisibleProperty)
             {
-                if (e.NewValue?.Equals(false) == false && State == AnimationState.Playing)
+                if (e.NewValue?.Equals(false) == true && State == AnimationState.Playing)
                 {
-                    this.PauseAnimation();
+                    PauseAnimation();
                     _waitForResume = true;
                 }
                 else if (_waitForResume)
                 {
                     _waitForResume = false;
-                    this.BeginAnimation();
+                    BeginAnimation();
                 }
             }
             else if (e.Property == Window.WindowStateProperty)
@@ -100,13 +94,13 @@ namespace AnimationImage
                 {
                     if (state == WindowState.Minimized && State == AnimationState.Playing)
                     {
-                        this.PauseAnimation();
+                        PauseAnimation();
                         _waitForResume = true;
                     }
                     else if (_waitForResume)
                     {
                         _waitForResume = false;
-                        this.BeginAnimation();
+                        BeginAnimation();
                     }
                 }
             }
@@ -117,7 +111,7 @@ namespace AnimationImage
 
         private void CreateAnimation()
         {
-            var loopCount = AnimationBehavior.GetLoopCount(Target) 
+            var loopCount = AnimationBehavior.GetLoopCount(Target)
                          ?? (Metadata.LoopCount >= 0 ? Metadata.LoopCount + 1 : Metadata.LoopCount);
             _animation = new Animation()
             {
@@ -130,55 +124,55 @@ namespace AnimationImage
                 {
                     Cue = new Cue(0.0),
                     Setters =
-                        {
-                            new Setter(AnimationBehavior.AnimationTimeProperty, 0.0)
-                        }
+                    {
+                        new Setter(AnimationBehavior.AnimationTimeProperty, 0.0)
+                    }
                 });
                 _animation.Children.Add(new KeyFrame
                 {
                     Cue = new Cue(1.0),
                     Setters =
-                        {
-                            new Setter(AnimationBehavior.AnimationTimeProperty, Metadata.Duration)
-                        }
+                    {
+                        new Setter(AnimationBehavior.AnimationTimeProperty, Metadata.Duration)
+                    }
                 });
             }
             else
             {
-                //当前时间=》结束时间&归零=》当前时间
+                // 当前时间=》结束时间&归零=》当前时间
                 var currentTime = CurrentTime;
                 _animation.Children.Add(new KeyFrame()
                 {
                     Cue = new Cue(0.0),
                     Setters =
-                        {
-                           new Setter(AnimationBehavior.AnimationTimeProperty, currentTime)
-                        }
+                    {
+                        new Setter(AnimationBehavior.AnimationTimeProperty, currentTime)
+                    }
                 });
                 var timeNode = (Metadata.Duration - currentTime) / Metadata.Duration;
                 _animation.Children.Add(new KeyFrame()
                 {
                     Cue = new Cue(timeNode),
                     Setters =
-                        {
-                           new Setter(AnimationBehavior.AnimationTimeProperty, Metadata.Duration)
-                        }
+                    {
+                        new Setter(AnimationBehavior.AnimationTimeProperty, Metadata.Duration)
+                    }
                 });
                 _animation.Children.Add(new KeyFrame()
                 {
                     Cue = new Cue(timeNode),
                     Setters =
-                        {
-                           new Setter(AnimationBehavior.AnimationTimeProperty, 0.0)
-                        }
+                    {
+                        new Setter(AnimationBehavior.AnimationTimeProperty, 0.0)
+                    }
                 });
                 _animation.Children.Add(new KeyFrame()
                 {
                     Cue = new Cue(1.0),
                     Setters =
-                        {
-                           new Setter(AnimationBehavior.AnimationTimeProperty, currentTime)
-                        }
+                    {
+                        new Setter(AnimationBehavior.AnimationTimeProperty, currentTime)
+                    }
                 });
             }
         }
@@ -194,19 +188,23 @@ namespace AnimationImage
             try
             {
                 _animationToken = new CancellationTokenSource();
-                this.State = AnimationState.Playing;
-                this.UpdateCommandState();
-                this.CreateAnimation();
+                State = AnimationState.Playing;
+                UpdateCommandState();
+                CreateAnimation();
                 await _animation.RunAsync(Target, _animationToken.Token);
                 if (!_animationToken.IsCancellationRequested)
                 {
-                    State = AnimationState.Completed;//播放到自然结束
+                    State = AnimationState.Completed; // 播放到自然结束
                     AnimationBehavior.SetAnimationTime(Target, Metadata.Duration);
                 }
                 _animationToken.Dispose();
                 _animationToken = null;
             }
-            catch { }
+            catch (OperationCanceledException) { }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"Avalonia动画播放异常：{e.Message}");
+            }
         }
 
         protected virtual void PauseAnimation()
@@ -214,27 +212,36 @@ namespace AnimationImage
             if (State != AnimationState.Playing)
                 return;
 
-            var currentTime = this.CurrentTime;
-            _animationToken?.Cancel();
-            this.State = AnimationState.Paused;
-            this.UpdateCommandState();
+            var currentTime = CurrentTime;
+            if(_animationToken != null)
+            {
+                _animationToken.Cancel();
+                _animationToken.Dispose();
+                _animationToken = null;
+            }
+            State = AnimationState.Paused;
+            UpdateCommandState();
             AnimationBehavior.SetAnimationTime(Target, currentTime);
-
         }
 
         protected virtual void StopAnimation()
         {
-            _animationToken?.Cancel();
-            this.State = AnimationState.Stopped;
-            this.UpdateCommandState();
+            if (_animationToken != null)
+            {
+                _animationToken.Cancel();
+                _animationToken.Dispose();
+                _animationToken = null;
+            }
+            State = AnimationState.Stopped;
+            UpdateCommandState();
             AnimationBehavior.SetAnimationTime(Target, 0.0);
         }
 
         protected void UpdateCommandState()
         {
-            (this.BeginCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (this.PauseCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (this.StopCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (BeginCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (PauseCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (StopCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         internal static WriteableBitmap CreateNewFrame(int width, int height)

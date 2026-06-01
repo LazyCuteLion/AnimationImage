@@ -9,6 +9,7 @@
     <DefineConstants>WPF</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
   <ItemGroup>
     <None Include="..\readme.md" Pack="true" PackagePath="\" />
     <None Include="..\nuget.readme.md" Pack="true" PackagePath="\" />

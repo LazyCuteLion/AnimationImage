@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,6 +27,10 @@ namespace AnimationImage
             else if (value is string str)
             {
                 return AnimatableBitmapFactory.Default.Create(str);
+            }
+            else if (value is Stream stream)
+            {
+
             }
             return null;
         }

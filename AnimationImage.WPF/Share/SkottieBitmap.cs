@@ -1,41 +1,23 @@
 ﻿using SkiaSharp;
 using SkiaSharp.Skottie;
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Vortice.Direct3D12;
-using Vortice.Direct3D;
-using Vortice.DXGI;
 using Vortice;
-using System.Xml.Linq;
-
+using Vortice.Direct3D;
+using Vortice.Direct3D12;
+using Vortice.DXGI;
 
 #if WPF
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Input;
-using System.Windows.Markup;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
-using System.Windows.Media.Media3D;
 #endif
 
 #if AVALONIA
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Layout;
 using Avalonia.Media.Imaging;
-using Avalonia.Vulkan;
 using FrameworkElement = Avalonia.Controls.Control;
+using Size = Avalonia.Size;
 #endif
 
 namespace AnimationImage
@@ -46,7 +28,9 @@ namespace AnimationImage
         private SKImageInfo _info;
         private GRContext? _gpuContext;
         private SKSurface? _gpuSurface;
-        private double _renderScale;
+        private ID3D12Device? _d3dDevice;
+        private IDXGIAdapter1? _dxgiAdapter;
+        private ID3D12CommandQueue? _commandQueue;
 
         public override bool IsAnimatable => base.IsAnimatable && _animation != null;
 
@@ -55,26 +39,26 @@ namespace AnimationImage
             _animation = Animation.Create(_stream);
             if (_animation == null)
             {
-                this.State = AnimationState.Error;
+                State = AnimationState.Error;
                 return;
             }
-            _renderScale = Math.Min(2, Math.Max(0.1, options.RenderScale));
-            this.Metadata = new Metadata((int)_animation.Size.Width,
-                                        (int)_animation.Size.Height,
-                                        _animation.Duration.TotalMilliseconds,
-                                        (int)Math.Ceiling(_animation.Duration.Seconds * _animation.Fps),
-                                        (int)_animation.Fps,
-                                        0);
-            this.State = AnimationState.None;
+            Metadata = new Metadata((int)_animation.Size.Width,
+                (int)_animation.Size.Height,
+                _animation.Duration.TotalMilliseconds,
+                (int)Math.Ceiling(_animation.Duration.Seconds * _animation.Fps),
+                (int)_animation.Fps,
+                0);
+            State = AnimationState.None;
+            UpdateSize();
             if (options.UseGPU)
-                this.TryUseGPU();
+                TryUseGPU();
         }
 
         public override void AttachTarget(FrameworkElement target)
         {
-            //初始化时，获取控件的可用大小，而非其被分配的大小
-            this.UpdateSize(target.GetLayoutSlot());
-            this.Frame = CreateNewFrame(_info.Width, _info.Height);
+            // 初始化时，获取控件的可用大小，而非其被分配的大小
+            UpdateSize(target.GetLayoutSlot());
+            Frame = CreateNewFrame(_info.Width, _info.Height);
             target.SizeChanged += OnSizeChanged;
             base.AttachTarget(target);
         }
@@ -83,12 +67,12 @@ namespace AnimationImage
         {
             if (_disposed)
                 return;
-            this.UpdateSize(e.NewSize);
+            UpdateSize(e.NewSize);
             if (State != AnimationState.Playing)
-                this.SeekTime(CurrentTime);
+                SeekTime(CurrentTime);
         }
 
-        private void UpdateSize(Size size)
+        private void UpdateSize(Size? size = null)
         {
             if (_animation == null)
                 return;
@@ -96,24 +80,20 @@ namespace AnimationImage
             var w = (double)_animation.Size.Width;
             var h = (double)_animation.Size.Height;
 
-            if (size.Width != w || size.Height != h)
+            if (size != null && (size.Value.Width != w || size.Value.Height != h))
             {
-                var scaleX = Math.Ceiling(size.Width) / w;
-                var scaleY = Math.Ceiling(size.Height) / h;
-                //保持比例
+                var scaleX = Math.Ceiling(size.Value.Width) / w;
+                var scaleY = Math.Ceiling(size.Value.Height) / h;
+                // 保持比例
                 var scale = Math.Min(scaleX, scaleY);
                 if (scale == 0)
                     scale = Math.Max(scaleX, scaleY);
-                //等比例计算宽高
+                // 等比例计算宽高
                 w *= scale;
                 h *= scale;
             }
 
-            //计算相对于“渲染器”的宽高
-            w *= _renderScale;
-            h *= _renderScale;
-
-            //限制不要过小
+            // 限制不要过小
             var width = (int)Math.Max(32, Math.Ceiling(Math.Round(w, 1)));
             var height = (int)Math.Max(32, Math.Ceiling(Math.Round(h, 1)));
 
@@ -130,7 +110,9 @@ namespace AnimationImage
 
         internal override void SeekTime(double milliseconds)
         {
+#if DEBUG
             var st = Stopwatch.StartNew();
+#endif
             try
             {
                 if (!IsAnimatable)
@@ -138,17 +120,18 @@ namespace AnimationImage
                 var seconds = milliseconds / 1000.0;
                 _animation!.SeekFrameTime(seconds);
 
-                var frame = !this.Frame.EqualsSize(_info.Width, _info.Height)
-                            ? CreateNewFrame(_info.Width, _info.Height)
-                            : this.Frame;
+                var frame = !Frame.EqualsSize(_info.Width, _info.Height)
+                    ? CreateNewFrame(_info.Width, _info.Height)
+                    : Frame;
 
                 if (_gpuSurface != null)
                 {
                     _gpuSurface.Canvas.Clear();
-                    _animation.Render(_gpuSurface.Canvas, _info.Rect);//渲染后，需要把数据从GPU复制到CPU
+                    _animation.Render(_gpuSurface.Canvas, _info.Rect);
                     _gpuSurface.Flush();
                     using var locker = frame.LockScope();
-                    _gpuSurface.ReadPixels(_info, locker.Address, locker.RowBytes, 0, 0);//复制像素，1080x700复杂动画，耗时10~15
+                    // 渲染后，需要把数据从GPU复制到CPU
+                    _gpuSurface.ReadPixels(_info, locker.Address, locker.RowBytes, 0, 0);
                 }
                 else
                 {
@@ -158,25 +141,29 @@ namespace AnimationImage
                     _animation.Render(surface.Canvas, _info.Rect);
                 }
 
-                this.Frame = frame;
+                Frame = frame;
             }
-            catch
+            catch (Exception e)
             {
-
+                Debug.WriteLine($"Lottie渲染错误：{e.Message}");
             }
             finally
             {
                 base.SeekTime(milliseconds);
+#if DEBUG
                 st.Stop();
                 Debug.WriteLine($"渲染耗时：{st.ElapsedMilliseconds}");
+#endif
             }
-
         }
 
+        private bool _disposed;
         protected override void Dispose(bool disposing)
         {
             if (_disposed)
                 return;
+            _disposed = true;
+
             if (disposing)
             {
                 if (Target != null)
@@ -185,44 +172,69 @@ namespace AnimationImage
                 _animation?.Dispose();
                 _animation = null;
 
-                _gpuContext?.Dispose();
-                _gpuContext = null;
-
+                // 先释放 Skia GPU 资源，再释放 D3D12 底层资源
                 _gpuSurface?.Dispose();
                 _gpuSurface = null;
 
-#if AVALONIA
-                this.Frame?.Dispose();
-#endif
+                _gpuContext?.Dispose();
+                _gpuContext = null;
+
+                _commandQueue?.Dispose();
+                _commandQueue = null;
+                _dxgiAdapter?.Dispose();
+                _dxgiAdapter = null;
+                _d3dDevice?.Dispose();
+                _d3dDevice = null;
             }
             base.Dispose(disposing);
         }
 
         private void TryUseGPU()
         {
-            if (D3D12.D3D12CreateDevice(null, FeatureLevel.Level_12_0, out ID3D12Device? device).Failure)
-                return;
-
-            using var dxgiFactory = DXGI.CreateDXGIFactory1<IDXGIFactory4>();
-            if (dxgiFactory.EnumAdapterByLuid<IDXGIAdapter1>(Luid.FromInt64(device!.AdapterLuid), out var adapter).Failure)
-                return;
-
-            var queueDesc = new CommandQueueDescription(CommandListType.Direct);
-            using var commandQueue = device.CreateCommandQueue(queueDesc);
-
-            using var backendContext = new GRD3DBackendContext()
+            try
             {
-                Device = device.NativePointer,
-                Adapter = adapter!.NativePointer,
-                Queue = commandQueue.NativePointer,
-            };
+                if (D3D12.D3D12CreateDevice(null, FeatureLevel.Level_12_0, out ID3D12Device? device).Failure)
+                    return;
 
-            //利用GPU加速
-            _gpuContext = GRContext.CreateDirect3D(backendContext);
-            _gpuSurface = SKSurface.Create(_gpuContext, false, _info);
+                using var dxgiFactory = DXGI.CreateDXGIFactory1<IDXGIFactory4>();
+                if (dxgiFactory.EnumAdapterByLuid<IDXGIAdapter1>(Luid.FromInt64(device!.AdapterLuid), out var adapter).Failure)
+                {
+                    device?.Dispose();
+                    return;
+                }
 
-            adapter?.Dispose();
-            device?.Dispose();
+                var queueDesc = new CommandQueueDescription(CommandListType.Direct);
+                var commandQueue = device.CreateCommandQueue(queueDesc);
+
+                var backendContext = new GRD3DBackendContext()
+                {
+                    Device = device.NativePointer,
+                    Adapter = adapter!.NativePointer,
+                    Queue = commandQueue.NativePointer,
+                };
+
+                _gpuContext = GRContext.CreateDirect3D(backendContext);
+                _gpuSurface = SKSurface.Create(_gpuContext, false, _info);
+
+                // 保持 D3D12 资源与 GRContext 同生命周期
+                _d3dDevice = device;
+                _dxgiAdapter = adapter;
+                _commandQueue = commandQueue;
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"GPU加速初始化失败：{e.Message}");
+                _gpuSurface?.Dispose();
+                _gpuSurface = null;
+                _gpuContext?.Dispose();
+                _gpuContext = null;
+                _commandQueue?.Dispose();
+                _commandQueue = null;
+                _dxgiAdapter?.Dispose();
+                _dxgiAdapter = null;
+                _d3dDevice?.Dispose();
+                _d3dDevice = null;
+            }
         }
     }
 }

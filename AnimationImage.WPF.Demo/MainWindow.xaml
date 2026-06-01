@@ -34,12 +34,43 @@
                    RenderOptions.BitmapScalingMode="HighQuality"
                    Stretch="Uniform"
                    Visibility="Visible" />
+            <Image x:Name="img2"
+                   Width="320"
+                   Height="180"
+                   Margin="50,100"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Bottom"
+                   ani:AnimationBehavior.AutoStart="True"
+                   ani:AnimationBehavior.ForceFPS="144"
+                   ani:AnimationBehavior.RepeatBehavior="Forever" />
 
+            <Rectangle Width="100"
+                       Height="30"
+                       Margin="100"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Bottom"
+                       Fill="Blue"
+                       RenderTransformOrigin="0.5,0.5">
+                <Rectangle.RenderTransform>
+                    <RotateTransform Angle="0" />
+                </Rectangle.RenderTransform>
+                <Rectangle.Triggers>
+                    <EventTrigger RoutedEvent="Loaded">
+                        <BeginStoryboard>
+                            <Storyboard RepeatBehavior="Forever" Timeline.DesiredFrameRate="144">
+                                <DoubleAnimation Storyboard.TargetProperty="(RenderTransform).(RotateTransform.Angle)" To="360" Duration="0:0:2" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </Rectangle.Triggers>
+            </Rectangle>
 
             <TextBlock Margin="10,30,0,0"
                        HorizontalAlignment="Left"
                        VerticalAlignment="Top"
                        Foreground="White"
+                       Background="#7D000000"
+                       Padding="5"
                        Text="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap).TPS, StringFormat={}{0:F1}}" />
 
             <TextBlock Margin="10"
@@ -82,34 +113,22 @@
                     <Stretch>Uniform</Stretch>
                     <Stretch>UniformToFill</Stretch>
                 </ComboBox>
-                <StackPanel HorizontalAlignment="Right"
-                            DataContext="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
-                            Orientation="Horizontal">
-                    <TextBlock VerticalAlignment="Center"
-                               Foreground="White"
-                               Text="PreloadCount：" />
-                    <TextBox Name="tbPreloadCount"
-                             Width="50"
-                             Height="20"
-                             VerticalAlignment="Center"
-                             Text="0" />
+                <StackPanel HorizontalAlignment="Right" DataContext="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap)}" Orientation="Horizontal">
                     <CheckBox x:Name="cbUseGPU"
                               Margin="10,0,0,0"
                               VerticalAlignment="Center"
                               Content="显卡加速"
                               Foreground="White" />
-                    <Button Margin="10"
-                            Click="Button_Click"
-                            Content="Open" />
-                    <Button Margin="10"
-                            Command="{Binding BeginCommand, Mode=OneTime}"
-                            Content="Play" />
-                    <Button Margin="10"
-                            Command="{Binding PauseCommand, Mode=OneTime}"
-                            Content="Pause" />
-                    <Button Margin="10"
-                            Command="{Binding StopCommand, Mode=OneTime}"
-                            Content="Stop" />
+                    <CheckBox x:Name="cbPreload"
+                              Margin="10,0,0,0"
+                              VerticalAlignment="Center"
+                              Content="预加载"
+                              Foreground="White" 
+                              IsChecked="True"/>
+                    <Button Margin="10" Click="Button_Click" Content="Open" />
+                    <Button Margin="10" Command="{Binding BeginCommand, Mode=OneTime}" Content="Play" />
+                    <Button Margin="10" Command="{Binding PauseCommand, Mode=OneTime}" Content="Pause" />
+                    <Button Margin="10" Command="{Binding StopCommand, Mode=OneTime}" Content="Stop" />
                 </StackPanel>
             </Grid>
         </Grid>

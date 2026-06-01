@@ -19,15 +19,17 @@
 
         <!--
         <Rectangle ani:AnimationBehavior.AutoStart="True"
-                   ani:AnimationBehavior.LoopCount="-1"
-                   Fill="{ani:AnimatableBitmap 'D:\\Pictures\\loader.gif'}"/>
+        ani:AnimationBehavior.LoopCount="-1"
+        Fill="{ani:AnimatableBitmap 'D:\\Pictures\\loader.gif'}"/>
         -->
 
         <TextBlock Margin="10,20"
+                   Padding="5"
                    HorizontalAlignment="Left"
                    VerticalAlignment="Top"
                    x:DataType="ani:AnimatableBitmap"
                    DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
+                   Background="#7D000000"
                    Foreground="White"
                    Text="{Binding TPS, StringFormat={}{0:F1}}" />
         <TextBlock Margin="10"
@@ -78,18 +80,15 @@
                         x:DataType="ani:AnimatableBitmap"
                         DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
                         Orientation="Horizontal">
-                <TextBlock Margin="10,0,0,0"
-                           VerticalAlignment="Center"
-                           Text="PreloadCount：" />
-                <TextBox Name="tbPreloadCount"
-                         Width="50"
-                         Height="20"
-                         VerticalAlignment="Center"
-                         Text="-2" />
                 <CheckBox x:Name="cbUseGPU"
                           Margin="10,0,0,0"
                           VerticalAlignment="Center"
                           Content="显卡加速" />
+                <CheckBox x:Name="cbPreload"
+                          Margin="10,0,0,0"
+                          VerticalAlignment="Center"
+                          Content="预加载"
+                          IsChecked="True"/>
                 <Button Margin="10"
                         Click="Button_Click"
                         Content="Open" />

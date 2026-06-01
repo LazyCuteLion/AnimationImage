@@ -10,12 +10,13 @@
 
 ### ✨ 核心特性
 
-*   **多平台支持**：支持 WPF 和 AvaloniaUI（**目前未对移动端进行测试**）。
-*   **多格式兼容**：支持 Lottie(.json)，GIF、WebP 等格式动图（未来计划支持Apng）。
-*   **极致性能**：动图利用SKCodec进行流式加载，逐帧解码，极低的内存占用。Lottie则利用Skottie，极致流畅。
-*   **动画驱动**：使用框架动画库**Animation**，相比**定时器**方案，帧率更高更稳定。WPF可以设置更高的帧率，而非默认的60FPS。
-*   **极简API**：通过附加属性或标记扩展，以原生**Image**控件作为渲染器。
-*   **灵活控制**：默认自动播放，可设置循环次数，提供控制命令用于绑定。
+*   **多平台**：一套核心代码，WPF 和 AvaloniaUI 双平台原生体验。
+*   **多格式**：Lottie、GIF、WebP 一站式支持，未来计划支持 APNG。
+*   **极致性能**：SKCodec 流式逐帧解码，内存占用极低；Lottie 基于 Skottie + GPU 加速，复杂动画丝滑流畅。
+*   **智能缓存**：内存映射文件预加载，磁盘持久化、跨实例复用，大图高帧率场景也能轻松驾驭。
+*   **高帧率**：框架 Animation 引擎驱动，告别定时器抖动；WPF 可自定义帧率，突破默认的 60FPS 至显示器刷新率。
+*   **零侵入**：附加属性或标记扩展，原生 **Image** 控件即为渲染器，支持 **ImageBrush** 用于任意控件。
+*   **全可控**：自动播放、循环次数、进度跳转、Play/Pause/Stop 命令，开箱即用。
 
 ---
 
@@ -54,11 +55,8 @@ WPF：
        ani:AnimationBehavior.ForceFPS="144"
        ani:AnimationBehavior.RepeatBehavior="Forever" />
 
-<!-- 全量缓存（gif/webp有效） -->
-<Image Source="{ani:AnimatableBitmap '[path]',PreloadCount=PreloadOptions.Full}" />
-
-<!-- 设置渲染比例（Lottie有效） -->
-<Image Source="{ani:AnimatableBitmap '[path]',RenderScale=0.5}" />
+<!-- 预加载缓存（gif/webp有效） -->
+<Image Source="{ani:AnimatableBitmap '[path]',Preload=true}" />
 
 <!-- 也可以用到拥有Brush类型属性的控件 -->
 <Rectangle Fill="{ani:AnimatableBitmap '[path]'}" />

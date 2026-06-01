@@ -23,10 +23,7 @@ WPF：
        ani:AnimationBehavior.RepeatBehavior="Forever" />
 
 <!-- 全量缓存（gif/webp有效） -->
-<Image Source="{ani:AnimatableBitmap '[path]',PreloadCount=PreloadOptions.Full}" />
-
-<!-- 设置渲染比例（Lottie有效） -->
-<Image Source="{ani:AnimatableBitmap '[path]',RenderScale=0.5}" />
+<Image Source="{ani:AnimatableBitmap '[path]',Preload=true}" />
 
 <!-- 也可以用到拥有Brush类型属性的控件 -->
 <Rectangle Fill="{ani:AnimatableBitmap '[path]'}" />
@@ -65,10 +62,11 @@ public partial class App : Application
 {
    public override void Initialize()
    {
+       //修改默认配置
        AnimatableBitmapOptions.Default = new AnimatableBitmapOptions()
        {
            UseGPU = false,//禁用显卡加速
-           PreloadCount = PreloadOptions.Disable,//禁用预加载和缓存
+           Preload = false,//禁用预加载缓存
        };
        AvaloniaXamlLoader.Load(this);
    }
@@ -76,6 +74,11 @@ public partial class App : Application
 ```
 
 ## ✈️更新日志
+v2.0.0  
+🚨 重大变更：取消了`预加载机制`，移除了 `PreloadCount`/`PreloadOptions` 和 `RenderScale`（因为画面会糊）。  
+🧨 新增：`MMFFrameCache` （代替`预加载`）基于内存映射文件的帧缓存，默认已启用（几乎与预加载到内存一样流畅，但无需占用内存）。  
+🐛 修复：Lottie 像素舍入、GPU 资源生命周期、动画状态不一致等若干问题。
+
 v1.0.7  
 🐛 修复：修复Lottie文件初始化大小不准确以及帧率异常的问题。（**VS智能补全代码**害死人，稍不留神就出BUG）  
 🚨 重大变更：统一命名空间`xmlns:ani="https://github.com/LazyCuteLion/AnimationImage"`。
