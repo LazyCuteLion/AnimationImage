@@ -6,8 +6,8 @@
         xmlns:local="clr-namespace:AnimationImage.WPF.Demo"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         Title="AnimationImage.WPF.Demo"
-        Width="1294"
-        Height="758"
+        Width="1292"
+        Height="756"
         mc:Ignorable="d">
 
     <Grid local:RenderingHelper.ShowFPS="True" Background="Green">

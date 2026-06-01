@@ -98,8 +98,8 @@ namespace AnimationImage
 
             if (size.Width != w || size.Height != h)
             {
-                var scaleX = size.Width / w;
-                var scaleY = size.Height / h;
+                var scaleX = Math.Ceiling(size.Width) / w;
+                var scaleY = Math.Ceiling(size.Height) / h;
                 //保持比例
                 var scale = Math.Min(scaleX, scaleY);
                 if (scale == 0)
@@ -114,8 +114,8 @@ namespace AnimationImage
             h *= _renderScale;
 
             //限制不要过小
-            var width = (int)Math.Ceiling(Math.Max(32, w));
-            var height = (int)Math.Ceiling(Math.Max(32, h));
+            var width = (int)Math.Max(32, Math.Ceiling(Math.Round(w, 1)));
+            var height = (int)Math.Max(32, Math.Ceiling(Math.Round(h, 1)));
 
             if (_info.Width != width || _info.Height != height)
             {
