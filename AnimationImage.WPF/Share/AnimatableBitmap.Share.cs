@@ -31,7 +31,7 @@ namespace AnimationImage
     [TypeConverter(typeof(AnimatableBitmapConverter))]
     public abstract partial class AnimatableBitmap : INotifyPropertyChanged, IDisposable
     {
-        private static readonly HttpClient SharedHttpClient = new();
+        private static readonly HttpClient SharedHttpClient = new(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) });
 
         protected Stream _stream;
         private bool _waitForResume;
