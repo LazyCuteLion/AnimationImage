@@ -53,13 +53,13 @@ namespace AnimationImage
              && targetProvider?.TargetProperty is DependencyProperty property)
             {
                 var bitmap = AnimatableBitmapFactory.Default.Create(ToOptions());
-                if (property == AnimationBehavior.AnimatableBitmapProperty)
+                if (property == AnimatableBitmap.SourceProperty)
                 {
                     return bitmap;
                 }
                 else
                 {
-                    AnimationBehavior.SetAnimatableBitmap(target, bitmap);
+                    AnimatableBitmap.SetSource(target, bitmap);
                     if (property == Image.SourceProperty)
                     {
                         var binding = new Binding(nameof(bitmap.Frame)) { Source = bitmap, Mode = BindingMode.OneWay };

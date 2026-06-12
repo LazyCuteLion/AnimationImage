@@ -28,10 +28,6 @@ namespace AnimationImage
             {
                 return AnimatableBitmapFactory.Default.Create(str);
             }
-            else if (value is Stream stream)
-            {
-
-            }
             return null;
         }
 

@@ -47,31 +47,31 @@ Install-Package AnimationImage.Avalonia
 
 引入命名空间：`xmlns:ani="https://github.com/LazyCuteLion/AnimationImage"`  
 
-WPF：
-
 ```xaml
 <!-- 指定帧率为144，永久循环 -->
-<Image ani:AnimationBehavior.AnimatableBitmap="[path]"
-       ani:AnimationBehavior.ForceFPS="144"
-       ani:AnimationBehavior.RepeatBehavior="Forever" />
+<Image ani:AnimatableBitmap.Source="[path]"
+       ani:AnimatableBitmap.ForceFPS="144"
+       ani:AnimatableBitmap.RepeatBehavior="Forever" />
 
-<!-- 预加载缓存（gif/webp有效） -->
+<!-- 预加载全部帧画面（gif/webp有效） -->
 <Image Source="{ani:AnimatableBitmap '[path]',Preload=true}" />
+
+<!-- GPU加速解码（Lottie有效） -->
+<Image Source="{ani:AnimatableBitmap '[path]',UseGPU=true}" />
 
 <!-- 也可以用到拥有Brush类型属性的控件 -->
 <Rectangle Fill="{ani:AnimatableBitmap '[path]'}" />
-
 <Border Background="{ani:AnimatableBitmap '[path]'}" />
 
 <!-- 取消自动播放 -->
-<Image ani:AnimationBehavior.AutoStart="false" …… />
+<Image ani:AnimatableBitmap.AutoStart="False" />
 
 <!-- 进度条 -->
-<Slider Maximum="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap).Metadata.Duration}"
-        Value="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimationTime), Mode=TwoWay}" />
+<Slider Maximum="{Binding ElementName=img, Path=(ani:AnimatableBitmap.Source).Metadata.Duration}"
+        Value="{Binding ElementName=img, Path=(ani:AnimatableBitmap.AnimationTime), Mode=TwoWay}" />
 
 <!-- 命令绑定 -->
-<StackPanel DataContext="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
+<StackPanel DataContext="{Binding ElementName=img, Path=(ani:AnimatableBitmap.Source)}"
             Orientation="Horizontal">
             <Button Command="{Binding BeginCommand, Mode=OneTime}"
                     Content="Play" />
@@ -81,11 +81,4 @@ WPF：
             <Button Command="{Binding StopCommand, Mode=OneTime}"
                     Content="Stop" />
 </StackPanel>
-```
-
-Avalonia（用法与WPF基本相同）：
-```axaml
-<!-- 永久循环 -->
-<Image ani:AnimationBehavior.AnimatableBitmap="[path]"
-       ani:AnimationBehavior.LoopCount="-1" />
 ```

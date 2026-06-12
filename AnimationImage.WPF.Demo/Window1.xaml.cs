@@ -36,7 +36,7 @@ namespace AnimationImage.WPF.Demo
 
         private void Image_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (sender is Image img && AnimationBehavior.GetAnimatableBitmap(img) is { } b)
+            if (sender is Image img && AnimatableBitmap.GetSource(img) is { } b)
             {
                 if (b.State != AnimationState.Playing)
                     b.BeginCommand.Execute(null);

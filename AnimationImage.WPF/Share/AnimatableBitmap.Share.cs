@@ -1,28 +1,29 @@
 ﻿using SkiaSharp;
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using System.ComponentModel;
 
 
 #if WPF
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using DependencyProperty = System.Windows.DependencyProperty;
+using FrameworkElement = System.Windows.FrameworkElement;
 #endif
 
 #if AVALONIA
 using Avalonia;
-using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Avalonia.Styling;
+using DependencyProperty = Avalonia.AvaloniaProperty;
 using FrameworkElement = Avalonia.Controls.Control;
 #endif
 
@@ -31,8 +32,6 @@ namespace AnimationImage
     [TypeConverter(typeof(AnimatableBitmapConverter))]
     public abstract partial class AnimatableBitmap : INotifyPropertyChanged, IDisposable
     {
-        private static readonly HttpClient SharedHttpClient = new(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) });
-
         protected Stream _stream;
         private bool _waitForResume;
         private bool _disposed;
@@ -112,20 +111,8 @@ namespace AnimationImage
 
         private static Stream? LoadStream(Uri source)
         {
-            if (source.Scheme == Uri.UriSchemeHttp || source.Scheme == Uri.UriSchemeHttps)
-            {
-                using var response = SharedHttpClient.GetAsync(source).GetAwaiter().GetResult();
-                if (response.IsSuccessStatusCode)
-                {
-                    var stream = new MemoryStream();
-                    response.Content.CopyToAsync(stream).GetAwaiter().GetResult();
-                    stream.Position = 0;
-                    return stream;
-                }
-                return null;
-            }
 #if WPF
-            else if (source.Scheme == "pack")
+            if (source.Scheme == "pack")
             {
                 return Application.GetResourceStream(source)?.Stream
                     ?? Application.GetContentStream(source)?.Stream
@@ -133,12 +120,12 @@ namespace AnimationImage
             }
 #endif
 #if AVALONIA
-            else if (source.Scheme == "avares")
+            if (source.Scheme == "avares")
             {
                 return AssetLoader.Open(source);
             }
 #endif
-            else if (source.IsFile)
+            if (source.IsFile)
             {
                 return File.OpenRead(source.LocalPath);
             }
@@ -179,13 +166,6 @@ namespace AnimationImage
         internal static SKImageInfo CreateDecodeInfo(int width, int height)
         {
             return new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
-        }
-
-        static AnimatableBitmap()
-        {
-#if DEBUG
-            EnableTPS = true;
-#endif
         }
 
         #endregion

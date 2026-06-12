@@ -37,7 +37,7 @@ namespace AnimationImage.WPF.Demo
                                                           preload: cbPreload.IsChecked ?? false);
 
                 var s = AnimatableBitmapFactory.Default.Create(options);
-                AnimationBehavior.SetAnimatableBitmap(img, s);
+                AnimatableBitmap.SetSource(img, s);
 
                 //var s2 = AnimatableBitmapFactory.Default.Create(options);
                 //AnimationBehavior.SetAnimatableBitmap(img2, s2);

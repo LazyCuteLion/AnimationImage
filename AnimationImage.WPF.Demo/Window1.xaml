@@ -16,9 +16,9 @@
                     <Setter Property="ContentTemplate">
                         <Setter.Value>
                             <DataTemplate>
-                                <ListBox ani:AnimationBehavior.AutoStart="False"
-                                         ani:AnimationBehavior.ForceFPS="144"
-                                         ani:AnimationBehavior.RepeatBehavior="Forever"
+                                <ListBox ani:AnimatableBitmap.AutoStart="False"
+                                         ani:AnimatableBitmap.ForceFPS="144"
+                                         ani:AnimatableBitmap.RepeatBehavior="Forever"
                                          Background="LightGray"
                                          ItemsSource="{Binding}"
                                          ScrollViewer.CanContentScroll="False"
@@ -35,7 +35,7 @@
                                                     Background="Green"
                                                     BorderBrush="Black"
                                                     BorderThickness="1">
-                                                <Image ani:AnimationBehavior.AnimatableBitmap="{Binding}" MouseLeftButtonDown="Image_MouseLeftButtonDown" />
+                                                <Image ani:AnimatableBitmap.Source="{Binding}" MouseLeftButtonDown="Image_MouseLeftButtonDown" />
                                             </Border>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>

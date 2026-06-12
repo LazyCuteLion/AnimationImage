@@ -14,6 +14,9 @@ namespace AnimationImage
     /// <remarks>
     /// <list type="bullet">
     /// <item>
+    /// Source：仅支持资源文件或本地文件，不支持网络文件。
+    /// </item>
+    /// <item>
     /// UseGPU：是否启用GPU加速。对于Lottie有效，默认启用。
     /// </item>
     /// <item>

@@ -41,7 +41,7 @@ namespace AnimationImage.Avalonia.Demo
                 var bitmap = AnimatableBitmapFactory.Default.Create(new AnimatableBitmapOptions(file[0].Path,
                                                                     useGPU: cbUseGPU.IsChecked ?? false,
                                                                     preload: cbPreload.IsChecked ?? false));
-                AnimationBehavior.SetAnimatableBitmap(view, bitmap);
+                AnimatableBitmap.SetSource(view, bitmap);
             }
         }
 

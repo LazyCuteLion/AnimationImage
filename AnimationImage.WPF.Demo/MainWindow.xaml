@@ -28,9 +28,9 @@
             -->
 
             <Image x:Name="img"
-                   ani:AnimationBehavior.AutoStart="True"
-                   ani:AnimationBehavior.ForceFPS="144"
-                   ani:AnimationBehavior.RepeatBehavior="Forever"
+                   ani:AnimatableBitmap.AutoStart="True"
+                   ani:AnimatableBitmap.ForceFPS="144"
+                   ani:AnimatableBitmap.RepeatBehavior="Forever"
                    RenderOptions.BitmapScalingMode="HighQuality"
                    Stretch="Uniform"
                    Visibility="Visible" />
@@ -40,9 +40,9 @@
                    Margin="50,100"
                    HorizontalAlignment="Right"
                    VerticalAlignment="Bottom"
-                   ani:AnimationBehavior.AutoStart="True"
-                   ani:AnimationBehavior.ForceFPS="144"
-                   ani:AnimationBehavior.RepeatBehavior="Forever" />
+                   ani:AnimatableBitmap.AutoStart="True"
+                   ani:AnimatableBitmap.ForceFPS="144"
+                   ani:AnimatableBitmap.RepeatBehavior="Forever" />
 
             <Rectangle Width="100"
                        Height="30"
@@ -71,7 +71,7 @@
                        Foreground="White"
                        Background="#7D000000"
                        Padding="5"
-                       Text="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap).TPS, StringFormat={}{0:F1}}" />
+                       Text="{Binding ElementName=img, Path=(ani:AnimatableBitmap.Source).TPS, StringFormat={}{0:F1}}" />
 
             <TextBlock Margin="10"
                        Padding="10"
@@ -79,7 +79,7 @@
                        VerticalAlignment="Top"
                        Background="#7D000000"
                        Foreground="White"
-                       Text="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap).Metadata}"
+                       Text="{Binding ElementName=img, Path=(ani:AnimatableBitmap.Source).Metadata}"
                        TextWrapping="Wrap" />
 
             <StackPanel Margin="30,50" VerticalAlignment="Bottom">
@@ -89,16 +89,16 @@
                         <ColumnDefinition Width="80" />
                     </Grid.ColumnDefinitions>
                     <Slider LargeChange="1"
-                            Maximum="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap).Metadata.Duration}"
+                            Maximum="{Binding ElementName=img, Path=(ani:AnimatableBitmap.Source).Metadata.Duration}"
                             Minimum="0"
                             SmallChange="0.0001"
-                            Value="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimationTime), Mode=TwoWay}" />
+                            Value="{Binding ElementName=img, Path=(ani:AnimatableBitmap.AnimationTime), Mode=TwoWay}" />
                     <TextBlock Grid.Column="1"
                                Margin="10,0,0,0"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Center"
                                Foreground="White"
-                               Text="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimationTime), StringFormat={}{0:F1}}" />
+                               Text="{Binding ElementName=img, Path=(ani:AnimatableBitmap.AnimationTime), StringFormat={}{0:F1}}" />
                 </Grid>
             </StackPanel>
 
@@ -113,7 +113,7 @@
                     <Stretch>Uniform</Stretch>
                     <Stretch>UniformToFill</Stretch>
                 </ComboBox>
-                <StackPanel HorizontalAlignment="Right" DataContext="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap)}" Orientation="Horizontal">
+                <StackPanel HorizontalAlignment="Right" DataContext="{Binding ElementName=img, Path=(ani:AnimatableBitmap.Source)}" Orientation="Horizontal">
                     <CheckBox x:Name="cbUseGPU"
                               Margin="10,0,0,0"
                               VerticalAlignment="Center"

@@ -12,14 +12,14 @@
     <Grid Background="Green">
 
         <Image x:Name="view"
-               ani:AnimationBehavior.AutoStart="True"
-               ani:AnimationBehavior.LoopCount="-1"
+               ani:AnimatableBitmap.AutoStart="True"
+               ani:AnimatableBitmap.RepeatBehavior="Forever"
                RenderOptions.BitmapInterpolationMode="HighQuality"
                Stretch="Uniform"/>
 
         <!--
-        <Rectangle ani:AnimationBehavior.AutoStart="True"
-        ani:AnimationBehavior.LoopCount="-1"
+        <Rectangle ani:AnimatableBitmap.AutoStart="True"
+        ani:AnimatableBitmap.RepeatBehavior="Forever"
         Fill="{ani:AnimatableBitmap 'D:\\Pictures\\loader.gif'}"/>
         -->
 
@@ -28,7 +28,7 @@
                    HorizontalAlignment="Left"
                    VerticalAlignment="Top"
                    x:DataType="ani:AnimatableBitmap"
-                   DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
+                   DataContext="{Binding ElementName=view, Path=(ani:AnimatableBitmap.Source)}"
                    Background="#7D000000"
                    Foreground="White"
                    Text="{Binding TPS, StringFormat={}{0:F1}}" />
@@ -38,7 +38,7 @@
                    VerticalAlignment="Top"
                    x:DataType="ani:AnimatableBitmap"
                    Background="#7D000000"
-                   DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
+                   DataContext="{Binding ElementName=view, Path=(ani:AnimatableBitmap.Source)}"
                    Foreground="White"
                    Text="{Binding Metadata}"
                    TextWrapping="Wrap" />
@@ -51,19 +51,19 @@
                 </Grid.ColumnDefinitions>
 
                 <Slider x:DataType="ani:AnimatableBitmap"
-                        DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
+                        DataContext="{Binding ElementName=view, Path=(ani:AnimatableBitmap.Source)}"
                         LargeChange="1"
                         Maximum="{Binding Metadata.Duration}"
                         Minimum="0"
                         SmallChange="0.0001"
-                        Value="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimationTime)}" />
+                        Value="{Binding ElementName=view, Path=(ani:AnimatableBitmap.AnimationTime)}" />
 
                 <TextBlock Grid.Column="1"
                            Margin="10,0,0,0"
                            HorizontalAlignment="Left"
                            VerticalAlignment="Center"
                            Foreground="White"
-                           Text="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimationTime), StringFormat={}{0:F1}}" />
+                           Text="{Binding ElementName=view, Path=(ani:AnimatableBitmap.AnimationTime), StringFormat={}{0:F1}}" />
             </Grid>
         </StackPanel>
         <Grid VerticalAlignment="Bottom" Background="#7DFFFFFF">
@@ -78,7 +78,7 @@
             </ComboBox>
             <StackPanel HorizontalAlignment="Right"
                         x:DataType="ani:AnimatableBitmap"
-                        DataContext="{Binding ElementName=view, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
+                        DataContext="{Binding ElementName=view, Path=(ani:AnimatableBitmap.Source)}"
                         Orientation="Horizontal">
                 <CheckBox x:Name="cbUseGPU"
                           Margin="10,0,0,0"

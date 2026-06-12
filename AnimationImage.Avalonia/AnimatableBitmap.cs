@@ -60,7 +60,7 @@ namespace AnimationImage
             {
                 win.PropertyChanged += Target_PropertyChanged;
             }
-            if (AnimationBehavior.GetAutoStart(target))
+            if (GetAutoStart(target))
                 BeginAnimation();
         }
 
@@ -110,44 +110,33 @@ namespace AnimationImage
         private Animation _animation;
         private CancellationTokenSource _animationToken;
 
+        private IterationCount ToIterationCount(RepeatBehavior behavior)
+        {
+            if (behavior.IsForever) return IterationCount.Infinite;
+            return new IterationCount((ulong)behavior.Count);
+        }
+
         private void CreateAnimation()
         {
-            var loopCount = AnimationBehavior.GetLoopCount(Target)
-                         ?? (Metadata.LoopCount >= 0 ? Metadata.LoopCount + 1 : Metadata.LoopCount);
+            var repeatBehavior = GetRepeatBehavior(Target);
+            var loopCount = repeatBehavior != null
+                         ? ToIterationCount(repeatBehavior.Value)
+                         : (Metadata.LoopCount >= 0 ? new IterationCount((ulong)(Metadata.LoopCount + 1)) : IterationCount.Infinite);
             _animation = new Animation()
             {
                 Duration = TimeSpan.FromMilliseconds(Metadata.Duration),
-                IterationCount = new IterationCount((ulong)loopCount),
+                IterationCount = loopCount,
             };
-            if (CurrentTime == 0)
+            if (CurrentTime > 0 && CurrentTime < Metadata.Duration)
             {
-                _animation.Children.Add(new KeyFrame
-                {
-                    Cue = new Cue(0.0),
-                    Setters =
-                    {
-                        new Setter(AnimationBehavior.AnimationTimeProperty, 0.0)
-                    }
-                });
-                _animation.Children.Add(new KeyFrame
-                {
-                    Cue = new Cue(1.0),
-                    Setters =
-                    {
-                        new Setter(AnimationBehavior.AnimationTimeProperty, Metadata.Duration)
-                    }
-                });
-            }
-            else
-            {
-                // 当前时间=》结束时间&归零=》当前时间
+                // 从暂停处恢复：当前时间=》结束时间&归零=》当前时间
                 var currentTime = CurrentTime;
                 _animation.Children.Add(new KeyFrame()
                 {
                     Cue = new Cue(0.0),
                     Setters =
                     {
-                        new Setter(AnimationBehavior.AnimationTimeProperty, currentTime)
+                        new Setter(AnimationTimeProperty, currentTime)
                     }
                 });
                 var timeNode = (Metadata.Duration - currentTime) / Metadata.Duration;
@@ -156,7 +145,7 @@ namespace AnimationImage
                     Cue = new Cue(timeNode),
                     Setters =
                     {
-                        new Setter(AnimationBehavior.AnimationTimeProperty, Metadata.Duration)
+                        new Setter(AnimationTimeProperty, Metadata.Duration)
                     }
                 });
                 _animation.Children.Add(new KeyFrame()
@@ -164,7 +153,7 @@ namespace AnimationImage
                     Cue = new Cue(timeNode),
                     Setters =
                     {
-                        new Setter(AnimationBehavior.AnimationTimeProperty, 0.0)
+                        new Setter(AnimationTimeProperty, 0.0)
                     }
                 });
                 _animation.Children.Add(new KeyFrame()
@@ -172,7 +161,27 @@ namespace AnimationImage
                     Cue = new Cue(1.0),
                     Setters =
                     {
-                        new Setter(AnimationBehavior.AnimationTimeProperty, currentTime)
+                        new Setter(AnimationTimeProperty, currentTime)
+                    }
+                });
+            }
+            else
+            {
+                CurrentTime = 0;
+                _animation.Children.Add(new KeyFrame
+                {
+                    Cue = new Cue(0.0),
+                    Setters =
+                    {
+                        new Setter(AnimationTimeProperty, 0.0)
+                    }
+                });
+                _animation.Children.Add(new KeyFrame
+                {
+                    Cue = new Cue(1.0),
+                    Setters =
+                    {
+                        new Setter(AnimationTimeProperty, Metadata.Duration)
                     }
                 });
             }
@@ -198,7 +207,7 @@ namespace AnimationImage
                 if (!_animationToken.IsCancellationRequested)
                 {
                     State = AnimationState.Completed; // 播放到自然结束
-                    AnimationBehavior.SetAnimationTime(Target, Metadata.Duration);
+                    SetAnimationTime(Target, Metadata.Duration);
                 }
                 _animationToken.Dispose();
                 _animationToken = null;
@@ -224,7 +233,7 @@ namespace AnimationImage
             }
             State = AnimationState.Paused;
             UpdateCommandState();
-            AnimationBehavior.SetAnimationTime(Target, currentTime);
+            SetAnimationTime(Target, currentTime);
         }
 
         protected virtual void StopAnimation()
@@ -238,7 +247,7 @@ namespace AnimationImage
             State = AnimationState.Stopped;
             _waitForResume = false;
             UpdateCommandState();
-            AnimationBehavior.SetAnimationTime(Target, 0.0);
+            SetAnimationTime(Target, 0.0);
         }
 
         protected void UpdateCommandState()
@@ -252,5 +261,83 @@ namespace AnimationImage
         {
             return new WriteableBitmap(new PixelSize(width, height), new Vector(96d, 96d), PixelFormat.Bgra8888, AlphaFormat.Premul);
         }
+
+        #region Attached Properties
+
+        /// <summary>
+        /// 动画源，设置 AnimatableBitmap 实例或 Uri 路径（通过 TypeConverter 自动转换）
+        /// </summary>
+        public static readonly AttachedProperty<AnimatableBitmap?> SourceProperty =
+            AvaloniaProperty.RegisterAttached<AnimatableBitmap, Control, AnimatableBitmap?>("Source");
+        public static AnimatableBitmap? GetSource(Control obj) => obj.GetValue(SourceProperty);
+        public static void SetSource(Control obj, AnimatableBitmap? value) => obj.SetValue(SourceProperty, value);
+
+        /// <summary>
+        /// 动画时间点
+        /// </summary>
+        public static readonly AttachedProperty<double> AnimationTimeProperty =
+            AvaloniaProperty.RegisterAttached<AnimatableBitmap, Control, double>("AnimationTime", 0.0);
+        public static double GetAnimationTime(Control obj) => obj.GetValue(AnimationTimeProperty);
+        public static void SetAnimationTime(Control obj, double value) => obj.SetValue(AnimationTimeProperty, value);
+
+        /// <summary>
+        /// 是否自动播放
+        /// </summary>
+        public static readonly AttachedProperty<bool> AutoStartProperty =
+            AvaloniaProperty.RegisterAttached<AnimatableBitmap, Control, bool>("AutoStart", true, true);
+        public static bool GetAutoStart(Control obj) => obj.GetValue(AutoStartProperty);
+        public static void SetAutoStart(Control obj, bool value) => obj.SetValue(AutoStartProperty, value);
+
+        /// <summary>
+        /// 循环行为
+        /// </summary>
+        public static readonly AttachedProperty<RepeatBehavior?> RepeatBehaviorProperty =
+            AvaloniaProperty.RegisterAttached<AnimatableBitmap, Control, RepeatBehavior?>("RepeatBehavior", null, true);
+        public static RepeatBehavior? GetRepeatBehavior(Control obj) => obj.GetValue(RepeatBehaviorProperty);
+        public static void SetRepeatBehavior(Control obj, RepeatBehavior? value) => obj.SetValue(RepeatBehaviorProperty, value);
+
+        static AnimatableBitmap()
+        {
+            AnimationTimeProperty.Changed.AddClassHandler<Control>((s, e) =>
+            {
+                if (GetSource(s) is AnimatableBitmap b)
+                {
+                    b.SeekTime((double)e.NewValue!);
+                    s.InvalidateVisual();
+                }
+            });
+
+#if DEBUG
+            AutoStartProperty.Changed.AddClassHandler<Control>((s, e) =>
+            {
+                if (GetSource(s) is AnimatableBitmap b)
+                {
+                    if (Design.IsDesignMode)
+                    {
+                        if ((bool)e.NewValue!)
+                            b.BeginCommand.Execute(null);
+                        else
+                            b.StopCommand.Execute(null);
+                    }
+                }
+            });
+#endif
+
+            SourceProperty.Changed.AddClassHandler<Control>(async (s, e) =>
+            {
+                if (e.OldValue is AnimatableBitmap old)
+                    old.Dispose();
+                // 切换源时重置 AnimationTime，防止旧动画残留时间通过 Changed 回调写入新实例
+                SetAnimationTime(s, 0.0);
+                if (e.NewValue is AnimatableBitmap b)
+                    b.AttachTarget(s);
+            });
+
+#if DEBUG
+            EnableTPS = true;
+#endif
+        }
+
+        #endregion
     }
 }

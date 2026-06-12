@@ -14,31 +14,31 @@
 
 引入命名空间：`xmlns:ani="https://github.com/LazyCuteLion/AnimationImage"`  
 
-WPF：
-
 ```xaml
 <!-- 指定帧率为144，永久循环 -->
-<Image ani:AnimationBehavior.AnimatableBitmap="[path]"
-       ani:AnimationBehavior.ForceFPS="144"
-       ani:AnimationBehavior.RepeatBehavior="Forever" />
+<Image ani:AnimatableBitmap.Source="[path]"
+       ani:AnimatableBitmap.ForceFPS="144"
+       ani:AnimatableBitmap.RepeatBehavior="Forever" />
 
-<!-- 全量缓存（gif/webp有效） -->
+<!-- 预加载全部帧画面（gif/webp有效） -->
 <Image Source="{ani:AnimatableBitmap '[path]',Preload=true}" />
+
+<!-- GPU加速解码（Lottie有效） -->
+<Image Source="{ani:AnimatableBitmap '[path]',UseGPU=true}" />
 
 <!-- 也可以用到拥有Brush类型属性的控件 -->
 <Rectangle Fill="{ani:AnimatableBitmap '[path]'}" />
-
 <Border Background="{ani:AnimatableBitmap '[path]'}" />
 
 <!-- 取消自动播放 -->
-<Image ani:AnimationBehavior.AutoStart="false" …… />
+<Image ani:AnimatableBitmap.AutoStart="False" />
 
 <!-- 进度条 -->
-<Slider Maximum="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap).Metadata.Duration}"
-        Value="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimationTime), Mode=TwoWay}" />
+<Slider Maximum="{Binding ElementName=img, Path=(ani:AnimatableBitmap.Source).Metadata.Duration}"
+        Value="{Binding ElementName=img, Path=(ani:AnimatableBitmap.AnimationTime), Mode=TwoWay}" />
 
 <!-- 命令绑定 -->
-<StackPanel DataContext="{Binding ElementName=img, Path=(ani:AnimationBehavior.AnimatableBitmap)}"
+<StackPanel DataContext="{Binding ElementName=img, Path=(ani:AnimatableBitmap.Source)}"
             Orientation="Horizontal">
             <Button Command="{Binding BeginCommand, Mode=OneTime}"
                     Content="Play" />
@@ -48,13 +48,6 @@ WPF：
             <Button Command="{Binding StopCommand, Mode=OneTime}"
                     Content="Stop" />
 </StackPanel>
-```
-
-Avalonia（用法与WPF基本相同）：
-```axaml
-<!-- 永久循环 -->
-<Image ani:AnimationBehavior.AnimatableBitmap="[path]"
-       ani:AnimationBehavior.LoopCount="-1" />
 ```
 
 ```C#
@@ -74,6 +67,13 @@ public partial class App : Application
 ```
 
 ## ✈️更新日志
+
+v2.1.0  
+🚨 破坏性变更：移除 `AnimationBehavior`，附加属性统一迁移到 `AnimatableBitmap`。  
+🚨 破坏性变更：移除网络地址支持，这应该由使用方自行缓存。  
+🧨 新增功能：Avalonia 增加`RepeatBehavior` ，循环模式对齐 WPF 。  
+✨ 优化修复：优化代码结构，修复若干问题。  
+
 v2.0.0  
 🚨 重大变更：取消了`预加载机制`，移除了 `PreloadCount`/`PreloadOptions` 和 `RenderScale`（因为画面会糊）。  
 🧨 新增：`MMFFrameCache` （代替`预加载`）基于内存映射文件的帧缓存，默认已启用（几乎与预加载到内存一样流畅，但无需占用内存）。  
