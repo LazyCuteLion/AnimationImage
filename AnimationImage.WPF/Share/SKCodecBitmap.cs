@@ -151,12 +151,13 @@ namespace AnimationImage
             {
                 var success = false;
                 var rect = _frameInfo[index].FrameRect;
-                using var b = Frame.LockScope();
+
                 if (_frameCache != null)
                 {
                     _renderToken?.Cancel();
-                    success = _frameCache.TryGet(index, b.Address);
-                    if (!success)
+
+                    // 阶段1：无锁等待缓存就绪
+                    if (!_frameCache.Contains(index))
                     {
                         var time = _frameInfo[index].Duration * 0.8;
                         _renderToken = new CancellationTokenSource(TimeSpan.FromMilliseconds(time));
@@ -165,23 +166,31 @@ namespace AnimationImage
                             try
                             {
                                 await Task.Delay(5, _renderToken.Token);
-                                success = _frameCache.TryGet(index, b.Address);
-                                if (success)
+                                if (_frameCache.Contains(index))
                                     break;
                             }
                             catch (OperationCanceledException) { break; }
                         }
                     }
+
+                    // 阶段2：锁定并拷贝
+                    using var b = Frame.LockScope();
+                    success = _frameCache.TryGet(index, b.Address);
+                    if (success)
+                    {
+                        b.Update(rect);
+                        _currentIndex = index;
+                    }
                 }
                 else
                 {
+                    using var b = Frame.LockScope();
                     success = Decode(index, b.Address, out rect);
-                }
-
-                if (success)
-                {
-                    b.Update(rect);
-                    _currentIndex = index;
+                    if (success)
+                    {
+                        b.Update(rect);
+                        _currentIndex = index;
+                    }
                 }
             }
             catch (Exception e)

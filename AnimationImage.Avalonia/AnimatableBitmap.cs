@@ -19,6 +19,7 @@ namespace AnimationImage
         {
             if (_disposed)
                 return;
+            _disposed = true;
             if (disposing)
             {
                 // 释放托管资源
@@ -42,7 +43,7 @@ namespace AnimationImage
                 _tpsWatcher?.Stop();
             }
             // 释放非托管资源
-            _disposed = true;
+
         }
 
         public virtual async void AttachTarget(FrameworkElement target)
@@ -188,6 +189,8 @@ namespace AnimationImage
             try
             {
                 _animationToken = new CancellationTokenSource();
+                if (State == AnimationState.Completed)
+                    CurrentTime = 0;
                 State = AnimationState.Playing;
                 UpdateCommandState();
                 CreateAnimation();
@@ -213,7 +216,7 @@ namespace AnimationImage
                 return;
 
             var currentTime = CurrentTime;
-            if(_animationToken != null)
+            if (_animationToken != null)
             {
                 _animationToken.Cancel();
                 _animationToken.Dispose();
@@ -233,6 +236,7 @@ namespace AnimationImage
                 _animationToken = null;
             }
             State = AnimationState.Stopped;
+            _waitForResume = false;
             UpdateCommandState();
             AnimationBehavior.SetAnimationTime(Target, 0.0);
         }

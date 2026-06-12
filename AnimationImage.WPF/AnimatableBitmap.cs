@@ -192,6 +192,7 @@ namespace AnimationImage
         {
             _storyboard?.Stop();
             State = AnimationState.Stopped;
+            _waitForResume = false;
             if (Target != null)
             {
                 Target.BeginAnimation(AnimationBehavior.AnimationTimeProperty, null);

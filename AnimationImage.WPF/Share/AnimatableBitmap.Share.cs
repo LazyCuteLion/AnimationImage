@@ -108,11 +108,6 @@ namespace AnimationImage
             PauseCommand = new RelayCommand(PauseAnimation, () => State == AnimationState.Playing);
             StopCommand = new RelayCommand(StopAnimation);
 
-            if (EnableTPS)
-            {
-                _tpsWatcher = Stopwatch.StartNew();
-                _tpsCount = 0;
-            }
         }
 
         private static Stream? LoadStream(Uri source)
@@ -155,6 +150,7 @@ namespace AnimationImage
             CurrentTime = milliseconds;
             if (!EnableTPS) return;
 
+            _tpsWatcher ??= Stopwatch.StartNew();
             _tpsCount++;
             if (_tpsWatcher.ElapsedMilliseconds >= 1000)
             {

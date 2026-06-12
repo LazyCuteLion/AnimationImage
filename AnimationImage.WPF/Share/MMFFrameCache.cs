@@ -72,7 +72,7 @@ namespace AnimationImage
                         if (_accessor.ReadByte(i) == 1)
                             load++;
                     }
-                    _loadedCount = load;
+                    Interlocked.Exchange(ref _loadedCount, load);
                     if (_loadedCount < _frameCount)
                     {
                         var info = new FileInfo(TempPath);

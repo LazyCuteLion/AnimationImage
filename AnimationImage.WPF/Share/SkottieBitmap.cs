@@ -45,7 +45,7 @@ namespace AnimationImage
             Metadata = new Metadata((int)_animation.Size.Width,
                 (int)_animation.Size.Height,
                 _animation.Duration.TotalMilliseconds,
-                (int)Math.Ceiling(_animation.Duration.Seconds * _animation.Fps),
+                (int)Math.Ceiling(_animation.Duration.TotalSeconds * _animation.Fps),
                 (int)_animation.Fps,
                 0);
             State = AnimationState.None;
@@ -103,7 +103,21 @@ namespace AnimationImage
                 _gpuSurface?.Dispose();
                 _gpuSurface = null;
                 if (_gpuContext != null)
+                {
                     _gpuSurface = SKSurface.Create(_gpuContext, false, _info);
+                    if (_gpuSurface == null)
+                    {
+                        Debug.WriteLine("GPU Surface重建失败，释放GPU资源");
+                        _gpuContext?.Dispose();
+                        _gpuContext = null;
+                        _commandQueue?.Dispose();
+                        _commandQueue = null;
+                        _dxgiAdapter?.Dispose();
+                        _dxgiAdapter = null;
+                        _d3dDevice?.Dispose();
+                        _d3dDevice = null;
+                    }
+                }
                 Debug.WriteLine($"设置大小：{_info.Size}");
             }
         }
@@ -215,6 +229,9 @@ namespace AnimationImage
 
                 _gpuContext = GRContext.CreateDirect3D(backendContext);
                 _gpuSurface = SKSurface.Create(_gpuContext, false, _info);
+
+                if (_gpuSurface == null)
+                    throw new ArgumentNullException("gpu surface");
 
                 // 保持 D3D12 资源与 GRContext 同生命周期
                 _d3dDevice = device;
