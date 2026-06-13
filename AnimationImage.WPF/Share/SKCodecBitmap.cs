@@ -43,6 +43,16 @@ namespace AnimationImage
             _codec = SKCodec.Create(_stream);
             if (_codec == null)
             {
+                try
+                {
+#if WPF
+                    this.Frame = new WriteableBitmap(new BitmapImage(options.Source));
+#endif
+#if AVALONIA
+                    this.Frame = WriteableBitmap.Decode(_stream);
+#endif
+                }
+                catch { }
                 State = AnimationState.Error;
                 return;
             }
