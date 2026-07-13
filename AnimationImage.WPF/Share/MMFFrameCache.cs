@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO;
@@ -84,9 +84,9 @@ namespace AnimationImage
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                throw new NotSupportedException("不支持MemoryMappedFile。");
+                throw new NotSupportedException($"不支持MemoryMappedFile：{ex.Message}", ex);
             }
         }
 
@@ -115,6 +115,7 @@ namespace AnimationImage
                 _accessor?.Dispose();
                 _mmf?.Dispose();
 
+                //缓存若还有其他实例在使用，则删除失败（系统文件锁定机制），当最后一个实例释放，应该会成功删除。
                 Delete(TempPath);
             }
             catch { }
@@ -224,7 +225,8 @@ namespace AnimationImage
                 Directory.CreateDirectory(TempDirectory);
 
 #if WPF
-            Application.Current.Exit += (_, _) => Clear();
+            if (Application.Current != null)
+                Application.Current.Exit += (_, _) => Clear();
 #endif
 
 #if AVALONIA
@@ -232,6 +234,11 @@ namespace AnimationImage
             {
                 app.Exit += (_, _) => Clear();
             }
+#endif
+
+#if WINUI
+            // WinUI 使用 ProcessExit 清理临时文件
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => Clear();
 #endif
         }
 

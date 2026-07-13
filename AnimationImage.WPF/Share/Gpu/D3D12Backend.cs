@@ -20,6 +20,11 @@ namespace AnimationImage
         private ComPtr<IDXGIAdapter1> _adapter;
         private ComPtr<ID3D12CommandQueue> _commandQueue;
 
+        // Skia GRD3DBackendContext 对 Device/Adapter/Queue 采用 adopts 语义（接管不 AddRef），
+        // CreateDirect3D 成功后三个 native 对象完全交给 Skia 管理；Context.Dispose() 时 Skia 会 Release 它们。
+        // 这个 flag = true 时表示“已交给 Skia”，DisposeInternal 不再释放三个 ComPtr。
+        private bool _handedToSkia;
+
         public GRContext? Context { get; private set; }
         public SKSurface? Surface { get; private set; }
 
@@ -75,6 +80,9 @@ namespace AnimationImage
                 if (Context == null)
                     return false;
 
+                // 三个 native 对象此时完全属于 Skia，后续释放由 Context.Dispose() 代为完成。
+                _handedToSkia = true;
+
                 Surface = SKSurface.Create(Context, false, info);
                 return Surface != null;
             }
@@ -110,16 +118,21 @@ namespace AnimationImage
 
         private void DisposeInternal()
         {
-            // 先释放 Skia GPU 资源，再释放 D3D12 底层资源
+            // Skia GRContext.Dispose 会 Release 它接管的 Device/Adapter/Queue。
             Surface?.Dispose();
             Surface = null;
 
             Context?.Dispose();
             Context = null;
 
-            _commandQueue.Dispose();
-            _adapter.Dispose();
-            _device.Dispose();
+            // 只有当初始化未成功交给 Skia（_handedToSkia == false）时，
+            // 才需要自己 Release 这三个 ComPtr；否则 double-Release 会引发 0xC0000409。
+            if (!_handedToSkia)
+            {
+                try { _commandQueue.Dispose(); } catch { }
+                try { _adapter.Dispose(); } catch { }
+                try { _device.Dispose(); } catch { }
+            }
 
             _dxgi?.Dispose();
             _dxgi = null;

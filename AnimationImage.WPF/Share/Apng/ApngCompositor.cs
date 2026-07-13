@@ -10,11 +10,11 @@ namespace AnimationImage.Apng
     internal sealed class ApngCompositor : IDisposable
     {
         private readonly SKBitmap _canvas;
-        private readonly SKCanvas _canvasWrap;               // 长期持有，复用避免每帧 new
+        private readonly SKCanvas _canvasWrap;               
         private readonly SKPaint _srcPaint = new() { BlendMode = SKBlendMode.Src };
         private readonly SKPaint _srcOverPaint = new() { BlendMode = SKBlendMode.SrcOver };
-        private SKBitmap? _snapshot;                         // 仅在遇到 dispose=Previous 时按需分配
-        private SKCanvas? _snapshotWrap;                     // 与 _snapshot 生命周期同步
+        private SKBitmap? _snapshot;
+        private SKCanvas? _snapshotWrap;                    
         private ApngDisposeOp _prevDispose;
         private SKRectI _prevRect;
         private bool _hasPrev;

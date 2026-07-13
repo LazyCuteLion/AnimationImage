@@ -1,8 +1,8 @@
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
-using System.Security.Cryptography;
 
 namespace AnimationImage.Apng
 {
@@ -41,10 +41,10 @@ namespace AnimationImage.Apng
         public int Height;                         // 子帧高
         public int OffsetX;                        // 子帧在主画布上的 X 偏移
         public int OffsetY;                        // 子帧在主画布上的 Y 偏移
-        public double DurationMs;                  // 该帧显示时长（毫秒）
+        public double Duration;                  // 该帧显示时长（毫秒）
         public ApngDisposeOp DisposeOp;
         public ApngBlendOp BlendOp;
-        public List<ChunkLocation> DataChunks = new(); // IDAT / fdAT 的物理位置列表（保持出现顺序）
+        public List<ChunkLocation> DataChunks = []; // IDAT / fdAT 的物理位置列表（保持出现顺序）
     }
 
     /// <summary>APNG 全局元数据（来自 IHDR + acTL）。</summary>
@@ -60,7 +60,7 @@ namespace AnimationImage.Apng
         public int NumFrames;                      // acTL num_frames
         public int NumPlays;                       // acTL num_plays（0 表示无限循环）
         public ChunkLocation IhdrChunk;            // IHDR 数据段（13 字节）
-        public List<ChunkLocation> AncillaryChunks = new(); // PLTE / tRNS / gAMA / cHRM / sRGB / bKGD 等
+        public List<ChunkLocation> AncillaryChunks = []; // PLTE / tRNS / gAMA / cHRM / sRGB / bKGD 等
     }
 
     /// <summary>
@@ -70,16 +70,14 @@ namespace AnimationImage.Apng
     internal static class ApngChunkReader
     {
         // PNG 文件签名（8 字节）
-        private static readonly byte[] Signature = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        private static readonly byte[] Signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
         /// <summary>读取签名并逐 chunk 扫描，构建 <see cref="ApngHeader"/> 与帧列表。</summary>
         /// <param name="stream">可 Seek 的 PNG/APNG 流，扫描完成后位置不定。</param>
         /// <param name="header">解析出的全局头信息。</param>
         /// <param name="frames">按出现顺序的帧列表；非 APNG（无 acTL）时返回空列表。</param>
-        /// <param name="hash">可选：传入 <see cref="IncrementalHash"/> 时，在扫描 chunk 的同时将所有字节喂入哈希，
-        /// 实现"单遍读取 = chunk 扫描 + MD5 计算"，避免大文件的二次全量读取。</param>
         /// <returns>是否为 APNG（包含 acTL 且至少 1 个 fcTL）。</returns>
-        public static bool TryScan(Stream stream, out ApngHeader header, out List<ApngFrameEntry> frames, IncrementalHash? hash = null)
+        public static bool TryScan(Stream stream, out ApngHeader header, out List<ApngFrameEntry> frames)
         {
             header = new ApngHeader();
             frames = new List<ApngFrameEntry>();
@@ -89,12 +87,9 @@ namespace AnimationImage.Apng
 
             stream.Position = 0;
 
-            // 当需要哈希时，分配一个读取缓冲区用于 "读取并喂入" 模式（替代 seek 跳过）
-            byte[]? hashBuf = hash != null ? new byte[81920] : null;
-
             // 1) 校验 PNG 签名
             Span<byte> sig = stackalloc byte[8];
-            if (ReadAndHash(stream, sig, hash) != 8)
+            if (stream.Read(sig) != 8)
                 return false;
             for (int i = 0; i < 8; i++)
                 if (sig[i] != Signature[i])
@@ -112,7 +107,7 @@ namespace AnimationImage.Apng
 
             while (true)
             {
-                if (ReadAndHash(stream, buf, 0, 8, hash) != 8)
+                if (stream.Read(buf, 0, 8) != 8)
                     break;
 
                 int length = BinaryPrimitives.ReadInt32BigEndian(buf.AsSpan(0, 4));
@@ -123,7 +118,7 @@ namespace AnimationImage.Apng
                 {
                     case "IHDR":
                         if (length != 13) return false;
-                        if (ReadAndHash(stream, ihdrBuf, hash) != 13) return false;
+                        if (stream.Read(ihdrBuf) != 13) return false;
                         header.CanvasWidth = BinaryPrimitives.ReadInt32BigEndian(ihdrBuf.Slice(0, 4));
                         header.CanvasHeight = BinaryPrimitives.ReadInt32BigEndian(ihdrBuf.Slice(4, 4));
                         header.BitDepth = ihdrBuf[8];
@@ -136,17 +131,17 @@ namespace AnimationImage.Apng
 
                     case "acTL":
                         if (length < 8) return false;
-                        if (ReadAndHash(stream, actlBuf, hash) != 8) return false;
+                        if (stream.Read(actlBuf) != 8) return false;
                         header.NumFrames = BinaryPrimitives.ReadInt32BigEndian(actlBuf.Slice(0, 4));
                         header.NumPlays = BinaryPrimitives.ReadInt32BigEndian(actlBuf.Slice(4, 4));
                         // 跳过多余字节（规范固定 8，但容错）
-                        SkipOrHash(stream, length - 8, hash, hashBuf);
+                        if (length > 8) stream.Position += length - 8;
                         sawActl = true;
                         break;
 
                     case "fcTL":
                         if (length < 26) return false;
-                        if (ReadAndHash(stream, fctlBuf, hash) != 26) return false;
+                        if (stream.Read(fctlBuf) != 26) return false;
                         // seq[0..4] 我们不校验；只取参数
                         var entry = new ApngFrameEntry
                         {
@@ -161,10 +156,10 @@ namespace AnimationImage.Apng
                         ushort delayDen = BinaryPrimitives.ReadUInt16BigEndian(fctlBuf.Slice(22, 2));
                         // 规范：delay_den == 0 时按 100 处理
                         if (delayDen == 0) delayDen = 100;
-                        entry.DurationMs = delayNum * 1000.0 / delayDen;
+                        entry.Duration = delayNum * 1000.0 / delayDen;
                         frames.Add(entry);
                         current = entry;
-                        SkipOrHash(stream, length - 26, hash, hashBuf);
+                        if (length > 26) stream.Position += length - 26;
                         if (!sawIdat) firstFrameOwnsIdat = true;
                         break;
 
@@ -176,18 +171,17 @@ namespace AnimationImage.Apng
                             current.DataChunks.Add(new ChunkLocation(dataOffset, length));
                         }
                         sawIdat = true;
-                        SkipOrHash(stream, length, hash, hashBuf);
+                        stream.Position += length;
                         break;
 
                     case "fdAT":
                         // fdAT 前 4 字节是 sequence number，真实数据从 offset+4 开始
                         if (current != null && length > 4)
                             current.DataChunks.Add(new ChunkLocation(dataOffset + 4, length - 4));
-                        SkipOrHash(stream, length, hash, hashBuf);
+                        stream.Position += length;
                         break;
 
                     case "IEND":
-                        SkipOrHash(stream, length + 4, hash, hashBuf); // + CRC
                         goto EndLoop;
 
                     // 全局辅助块（对所有帧都生效，需要在 mini-PNG 里保留）
@@ -201,17 +195,17 @@ namespace AnimationImage.Apng
                     case "bKGD":
                     case "pHYs":
                         header.AncillaryChunks.Add(new ChunkLocation(dataOffset, length));
-                        SkipOrHash(stream, length, hash, hashBuf);
+                        stream.Position += length;
                         break;
 
                     default:
                         // 未知或不影响解码的私有块，跳过
-                        SkipOrHash(stream, length, hash, hashBuf);
+                        stream.Position += length;
                         break;
                 }
 
                 // 跳过每个 chunk 末尾的 4 字节 CRC
-                SkipOrHash(stream, 4, hash, hashBuf);
+                stream.Position += 4;
             }
 
         EndLoop:
@@ -235,73 +229,26 @@ namespace AnimationImage.Apng
                     if (sig[i] != Signature[i]) return false;
 
                 int limit = (int)Math.Min(probeBytes, stream.Length - 8);
-                var buf = new byte[limit];
-                int read = stream.Read(buf, 0, limit);
-                // 在原始字节流中查找 "acTL" 四字符签名
-                for (int i = 0; i <= read - 4; i++)
+                var buf = ArrayPool<byte>.Shared.Rent(limit);
+                try
                 {
-                    if (buf[i] == 0x61 && buf[i + 1] == 0x63 && buf[i + 2] == 0x54 && buf[i + 3] == 0x4C)
-                        return true;
+                    int read = stream.Read(buf, 0, limit);
+                    // 在原始字节流中查找 "acTL" 四字符签名
+                    for (int i = 0; i <= read - 4; i++)
+                    {
+                        if (buf[i] == 0x61 && buf[i + 1] == 0x63 && buf[i + 2] == 0x54 && buf[i + 3] == 0x4C)
+                            return true;
+                    }
+                    return false;
                 }
-                return false;
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buf);
+                }
             }
             finally
             {
                 stream.Position = originalPos;
-            }
-        }
-
-        /// <summary>读取 Span 并同步喂入哈希（hash 为 null 时退化为普通 Read）。</summary>
-        private static int ReadAndHash(Stream stream, Span<byte> buffer, IncrementalHash? hash)
-        {
-            int n = stream.Read(buffer);
-            if (n > 0 && hash != null) hash.AppendData(buffer.Slice(0, n));
-            return n;
-        }
-
-        /// <summary>读取 byte[] 并同步喂入哈希。</summary>
-        private static int ReadAndHash(Stream stream, byte[] buffer, int offset, int count, IncrementalHash? hash)
-        {
-            int n = stream.Read(buffer, offset, count);
-            if (n > 0 && hash != null) hash.AppendData(buffer.AsSpan(offset, n));
-            return n;
-        }
-
-        /// <summary>
-        /// 跳过 <paramref name="count"/> 字节：<br/>
-        /// · 无哈希模式 → 直接 seek（零 I/O）；<br/>
-        /// · 哈希模式 → 顺序读取并喂入 hash（单遍扫描时需要把每个字节都经过哈希器）。
-        /// </summary>
-        private static void SkipOrHash(Stream stream, int count, IncrementalHash? hash, byte[]? readBuf)
-        {
-            if (count <= 0) return;
-            if (hash == null)
-            {
-                // 无哈希：直接 seek 跳过
-                if (stream.CanSeek)
-                    stream.Position += count;
-                else
-                {
-                    var tmp = new byte[Math.Min(count, 4096)];
-                    while (count > 0)
-                    {
-                        int r = stream.Read(tmp, 0, Math.Min(tmp.Length, count));
-                        if (r <= 0) break;
-                        count -= r;
-                    }
-                }
-            }
-            else
-            {
-                // 哈希模式：读取所有字节并喂入增量哈希
-                while (count > 0)
-                {
-                    int toRead = Math.Min(count, readBuf!.Length);
-                    int r = stream.Read(readBuf, 0, toRead);
-                    if (r <= 0) break;
-                    hash.AppendData(readBuf.AsSpan(0, r));
-                    count -= r;
-                }
             }
         }
     }

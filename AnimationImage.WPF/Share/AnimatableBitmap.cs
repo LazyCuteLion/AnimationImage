@@ -1,4 +1,4 @@
-﻿using SkiaSharp;
+using SkiaSharp;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -27,21 +27,27 @@ using DependencyProperty = Avalonia.AvaloniaProperty;
 using FrameworkElement = Avalonia.Controls.Control;
 #endif
 
+#if WINUI
+using Microsoft.UI.Xaml;
+using DependencyProperty = Microsoft.UI.Xaml.DependencyProperty;
+#endif
+
 namespace AnimationImage
 {
     [TypeConverter(typeof(AnimatableBitmapConverter))]
     public abstract partial class AnimatableBitmap : INotifyPropertyChanged, IDisposable
     {
-        protected Stream _stream;
+        protected Stream? _stream;
         private bool _waitForResume;
         private bool _disposed;
 
         public double CurrentTime { get; protected set; }
 
-        public FrameworkElement Target { get; private set; }
+        public FrameworkElement? Target { get; protected set; }
 
-        private WriteableBitmap _frame;
-        public WriteableBitmap Frame
+#if !WINUI
+        private WriteableBitmap? _frame;
+        public WriteableBitmap? Frame
         {
             get => _frame;
             protected set
@@ -53,13 +59,39 @@ namespace AnimationImage
                 }
             }
         }
+#endif
 
-        public AnimationState State { get; protected set; } = AnimationState.None;
+        private AnimationState _state = AnimationState.None;
+        public AnimationState State
+        {
+            get => _state;
+            protected set
+            {
+                if (_state != value)
+                {
+                    _state = value;
+                    RaisePropertyChanged();
+                    UpdateCommandState();
+                }
+            }
+        }
 
-        public Metadata Metadata { get; protected set; }
+        private Metadata? _metadata;
+        public Metadata? Metadata
+        {
+            get => _metadata;
+            protected set
+            {
+                if (_metadata != value)
+                {
+                    _metadata = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
 
         #region TPS
-        private Stopwatch _tpsWatcher;
+        private Stopwatch? _tpsWatcher;
         private int _tpsCount;
         private double _tps;
         /// <summary>
@@ -71,18 +103,23 @@ namespace AnimationImage
             get => _tps;
             private set
             {
-                if (_tps != value)
+                var rounded = Math.Round(value, 1);
+                if (_tps != rounded)
                 {
-                    _tps = value;
+                    _tps = rounded;
                     RaisePropertyChanged();
                 }
             }
         }
         #endregion
 
-        public virtual bool IsAnimatable => Frame != null
-            && Target != null
+        public virtual bool IsAnimatable => Target != null
+#if !WINUI
+            && Frame != null
             && Target.IsVisible
+#else
+            && Target.Visibility == Visibility.Visible
+#endif
             && State != AnimationState.Error;
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -95,6 +132,17 @@ namespace AnimationImage
         public ICommand PauseCommand { get; }
         public ICommand StopCommand { get; }
 
+        protected void UpdateCommandState()
+        {
+#if WPF
+            CommandManager.InvalidateRequerySuggested();
+#else
+            (BeginCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (PauseCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (StopCommand as RelayCommand)?.RaiseCanExecuteChanged();
+#endif
+        }
+
         public AnimatableBitmap(AnimatableBitmapOptions options)
         {
             var source = options.Source;
@@ -106,7 +154,6 @@ namespace AnimationImage
             BeginCommand = new RelayCommand(BeginAnimation, () => IsAnimatable && State != AnimationState.Playing);
             PauseCommand = new RelayCommand(PauseAnimation, () => State == AnimationState.Playing);
             StopCommand = new RelayCommand(StopAnimation);
-
         }
 
         private static Stream? LoadStream(Uri source)
@@ -123,6 +170,15 @@ namespace AnimationImage
             if (source.Scheme == "avares")
             {
                 return AssetLoader.Open(source);
+            }
+#endif
+#if WINUI
+            if (source.Scheme == "ms-appx")
+            {
+                var basePath = Windows.ApplicationModel.Package.Current.InstalledLocation.Path;
+                var relative = source.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                var full = Path.Combine(basePath, relative);
+                return File.OpenRead(full);
             }
 #endif
             if (source.IsFile)
@@ -161,7 +217,12 @@ namespace AnimationImage
         /// <remarks>
         /// 默认在调试模式下启用，发布模式下禁用。
         /// </remarks>
-        public static bool EnableTPS { get; set; }
+        public static bool EnableTPS { get; set; } =
+#if DEBUG
+            true;
+#else
+            false;
+#endif
 
         internal static SKImageInfo CreateDecodeInfo(int width, int height)
         {

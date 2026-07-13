@@ -48,11 +48,11 @@ namespace AnimationImage
         public override string ToString()
         {
             var sb = new StringBuilder();
-            sb.AppendFormat("Size:({0},{1})\r\n", PixelWidth, PixelHeight);
-            sb.AppendFormat("FrameCount:{0}\r\n", FrameCount);
-            sb.AppendFormat("Duration:{0:F2}(ms)\r\n", Duration);
-            sb.AppendFormat("LoopCount:{0}\r\n", LoopCount == -1 ? "Forever" : LoopCount.ToString());
-            sb.AppendFormat("FPS:{0}\r\n", FPS);
+            sb.AppendLine($"Size:({PixelWidth},{PixelHeight})");
+            sb.AppendLine($"FrameCount:{FrameCount}");
+            sb.AppendLine($"Duration:{Duration:F2}(ms)");
+            sb.AppendLine($"LoopCount:{(LoopCount == -1 ? "Forever" : LoopCount.ToString())}");
+            sb.AppendLine($"FPS:{FPS}");
             return sb.ToString();
         }
     }

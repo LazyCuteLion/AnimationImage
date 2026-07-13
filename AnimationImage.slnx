@@ -6,8 +6,12 @@
   <Folder Name="/解决方案项/">
     <File Path="README.md" />
   </Folder>
+  <Project Path="AnimationImage.WinUI/AnimationImage.WinUI.csproj" />
   <Project Path="AnimationImage.Avalonia.Demo/AnimationImage.Avalonia.Demo.csproj" Id="d4b74e92-d4a0-4abd-84a3-cbd10e3d6ad5" />
   <Project Path="AnimationImage.Avalonia/AnimationImage.Avalonia.csproj" />
+  <Project Path="AnimationImage.WinUI.Demo/AnimationImage.WinUI.Demo.csproj">
+    <Platform Project="x64" />
+  </Project>
   <Project Path="AnimationImage.WPF.Demo/AnimationImage.WPF.Demo.csproj" Id="d43a9fe0-7051-4f7c-bd5d-5a054a91ee78">
     <Platform Solution="*|x64" Project="x64" />
   </Project>

@@ -80,7 +80,7 @@ namespace AnimationImage.Apng
         /// </summary>
         public bool TryBuild(ApngFrameEntry frame, out byte[] rented, out int length)
         {
-            rented = Array.Empty<byte>();
+            rented = [];
             length = 0;
             if (frame.DataChunks.Count == 0)
                 return false;
@@ -109,10 +109,10 @@ namespace AnimationImage.Apng
             p += 8;
 
             // 2) IHDR：复制 13 字节，把 width/height 改成 fcTL 里的子帧尺寸
-            var ihdrForFrame = new byte[13];
-            _ihdrData.CopyTo(ihdrForFrame.AsSpan());
-            BinaryPrimitives.WriteInt32BigEndian(ihdrForFrame.AsSpan(0, 4), frame.Width);
-            BinaryPrimitives.WriteInt32BigEndian(ihdrForFrame.AsSpan(4, 4), frame.Height);
+            Span<byte> ihdrForFrame = stackalloc byte[13];
+            _ihdrData.AsSpan().CopyTo(ihdrForFrame);
+            BinaryPrimitives.WriteInt32BigEndian(ihdrForFrame.Slice(0, 4), frame.Width);
+            BinaryPrimitives.WriteInt32BigEndian(ihdrForFrame.Slice(4, 4), frame.Height);
             p += WriteChunk(span.Slice(p), ChunkTypeIhdr, ihdrForFrame);
 
             // 3) 全局辅助块（PLTE/tRNS/...）原样写回
@@ -162,7 +162,7 @@ namespace AnimationImage.Apng
         private static bool FailReturn(byte[] rented, out byte[] outRented, out int outLength)
         {
             ArrayPool<byte>.Shared.Return(rented);
-            outRented = Array.Empty<byte>();
+            outRented = [];
             outLength = 0;
             return false;
         }

@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "AnimationImage.WinUI.Demo (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "AnimationImage.WinUI.Demo (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

@@ -4,25 +4,15 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Threading;
 
 namespace AnimationImage.Apng
 {
-    /// <summary>APNG 单帧元信息（面向调用方的最小视图）。</summary>
-    internal readonly struct ApngFrameInfo
-    {
-        /// <summary>该帧显示时长（毫秒）。</summary>
-        public double DurationMs { get; }
-
-        public ApngFrameInfo(double durationMs) => DurationMs = durationMs;
-    }
-
     /// <summary>
     /// APNG 解码器（API 设计参考 <see cref="SKCodec"/>）：<br/>
     /// 典型用法：<br/><c>using var codec = ApngCodec.Create(stream); <br/>codec.GetPixels(index, info, address);</c>
     /// </summary>
-    internal sealed class ApngCodec : IDisposable
+    internal sealed partial class ApngCodec : IDisposable
     {
         #region 字段
         private readonly ApngHeader _header;
@@ -31,7 +21,6 @@ namespace AnimationImage.Apng
         private readonly ApngCompositor _compositor;
         /// <summary>按子帧尺寸缓存 <see cref="SKBitmap"/>，避免每帧重复分配（多数 APNG 全帧同尺寸）。</summary>
         private readonly Dictionary<long, SKBitmap> _subBitmapPool = [];
-        private readonly ApngFrameInfo[] _framesInfo;
         /// <summary>合成器当前呈现的帧（用于判断增量顺序合成）。</summary>
         private int _composedIndex = -1;
         /// <summary>生命周期状态：<c>0</c>=存活；<c>1</c>=已发起释放，仍在等待正在进行的解码退出；<c>2</c>=资源已完全释放。</summary>
@@ -54,8 +43,8 @@ namespace AnimationImage.Apng
         /// <summary>播放循环次数：<c>-1</c> = 无限；<c>n ≥ 0</c> = 再循环 n 次（共 n+1 次）。</summary>
         public int RepetitionCount { get; }
 
-        /// <summary>逐帧元信息（按出现顺序）。</summary>
-        public IReadOnlyList<ApngFrameInfo> Frames => _framesInfo;
+        /// <summary>逐帧信息（按出现顺序）。</summary>
+        public IReadOnlyList<ApngFrameEntry> Frames => _frames;
         #endregion
 
         private ApngCodec(ApngHeader header, List<ApngFrameEntry> frames, ApngFrameAssembler assembler)
@@ -67,10 +56,6 @@ namespace AnimationImage.Apng
             // APNG num_plays: 0=无限；n>0=总共播放 n 次
             // 项目 RepetitionCount: -1=无限；n≥0=再循环 n 次（共 n+1 次）
             RepetitionCount = header.NumPlays == 0 ? -1 : header.NumPlays - 1;
-
-            _framesInfo = new ApngFrameInfo[frames.Count];
-            for (int i = 0; i < frames.Count; i++)
-                _framesInfo[i] = new ApngFrameInfo(frames[i].DurationMs);
         }
 
         #region 工厂
@@ -186,16 +171,14 @@ namespace AnimationImage.Apng
                     && frame.Width == _header.CanvasWidth
                     && frame.Height == _header.CanvasHeight)
                 {
-                    var canvasInfo = new SKImageInfo(frame.Width, frame.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
-                    if (codec.GetPixels(canvasInfo, _compositor.Canvas.GetPixels()) != SKCodecResult.Success)
+                    if (codec.GetPixels(new SKImageInfo(frame.Width, frame.Height, SKColorType.Bgra8888, SKAlphaType.Premul), _compositor.Canvas.GetPixels()) != SKCodecResult.Success)
                         return false;
                     _compositor.MarkComposed(frame);
                     return true;
                 }
 
-                var subInfo = new SKImageInfo(frame.Width, frame.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
-                var subBitmap = GetOrCreateSubBitmap(frame.Width, frame.Height, subInfo);
-                if (codec.GetPixels(subInfo, subBitmap.GetPixels()) != SKCodecResult.Success)
+                var subBitmap = GetOrCreateSubBitmap(frame.Width, frame.Height);
+                if (codec.GetPixels(new SKImageInfo(frame.Width, frame.Height, SKColorType.Bgra8888, SKAlphaType.Premul), subBitmap.GetPixels()) != SKCodecResult.Success)
                     return false;
 
                 _compositor.Compose(subBitmap, frame);
@@ -209,12 +192,12 @@ namespace AnimationImage.Apng
         }
 
         /// <summary>从池里取或创建指定尺寸的子帧 <see cref="SKBitmap"/>。</summary>
-        private SKBitmap GetOrCreateSubBitmap(int width, int height, SKImageInfo info)
+        private SKBitmap GetOrCreateSubBitmap(int width, int height)
         {
             long key = ((long)width << 32) | (uint)height;
             if (!_subBitmapPool.TryGetValue(key, out var bmp))
             {
-                bmp = new SKBitmap(info);
+                bmp = new SKBitmap(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul));
                 _subBitmapPool[key] = bmp;
             }
             return bmp;

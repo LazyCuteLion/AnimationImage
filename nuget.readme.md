@@ -8,7 +8,7 @@
 
 ## 🚀 简介
 
-**AnimationImage**支持播放 **Lottie(JSON)**、**GIF** 和 **WebP** 格式，相比现有方案，具有更高的帧率、更佳的渲染性能以及更低的内存占用。
+**AnimationImage**支持播放 **Lottie(JSON)、GIF、WebP、APNG** 格式，相比现有方案，具有更高的帧率、更佳的渲染性能以及更低的内存占用。
 
 ## 🚝[使用方法](https://github.com/LazyCuteLion/AnimationImage)  
 
@@ -20,7 +20,7 @@
        ani:AnimatableBitmap.ForceFPS="144"
        ani:AnimatableBitmap.RepeatBehavior="Forever" />
 
-<!-- 预加载全部帧画面（gif/webp有效） -->
+<!-- 预加载全部帧画面（gif/webp/apng有效） -->
 <Image Source="{ani:AnimatableBitmap '[path]',Preload=true}" />
 
 <!-- GPU加速解码（Lottie有效） -->
@@ -67,6 +67,9 @@ public partial class App : Application
 ```
 
 ## ✈️更新日志
+
+v3.1.1  
+✨ 优化修复：优化代码结构，修复资源释放问题。
 
 v3.1.0  
 🧨 新增功能：增加Apng支持。  

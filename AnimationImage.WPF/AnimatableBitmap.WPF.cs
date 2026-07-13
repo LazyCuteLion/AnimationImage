@@ -1,4 +1,4 @@
-﻿using SkiaSharp;
+using SkiaSharp;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -201,11 +201,6 @@ namespace AnimationImage
             UpdateCommandState();
         }
 
-        protected void UpdateCommandState()
-        {
-            CommandManager.InvalidateRequerySuggested();
-        }
-
         internal static WriteableBitmap CreateNewFrame(int width, int height)
         {
             return new WriteableBitmap(width, height, 96d, 96d, PixelFormats.Pbgra32, null);
@@ -281,13 +276,6 @@ namespace AnimationImage
                 new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.Inherits));
         public static RepeatBehavior? GetRepeatBehavior(DependencyObject obj) => (RepeatBehavior?)obj.GetValue(RepeatBehaviorProperty);
         public static void SetRepeatBehavior(DependencyObject obj, RepeatBehavior? value) => obj.SetValue(RepeatBehaviorProperty, value);
-
-        static AnimatableBitmap()
-        {
-#if DEBUG
-            EnableTPS = true;
-#endif
-        }
 
         #endregion
     }

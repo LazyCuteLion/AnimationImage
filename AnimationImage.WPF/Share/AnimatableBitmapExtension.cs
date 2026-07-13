@@ -21,27 +21,45 @@ using FrameworkElement = Avalonia.Controls.Control;
 using DependencyProperty = Avalonia.AvaloniaProperty;
 #endif
 
+#if WINUI
+using Microsoft.UI.Xaml.Markup;
+#endif
+
 namespace AnimationImage
 {
+#if WINUI
+    [MarkupExtensionReturnType(ReturnType = typeof(AnimatableBitmap))]
+    public sealed class AnimatableBitmapExtension : MarkupExtension
+#else
     public class AnimatableBitmapExtension : MarkupExtension
+#endif
     {
+#if !WINUI
         [TypeConverter(typeof(UriTypeConverter))]
-        public Uri Source { get; set; }
+#endif
+        public Uri? Source { get; set; }
 
         public bool UseGPU { get; set; } = AnimatableBitmapOptions.Default.UseGPU;
 
         public bool Preload { get; set; } = AnimatableBitmapOptions.Default.Preload;
 
         public AnimatableBitmapOptions ToOptions()
-        {
-            return new AnimatableBitmapOptions(Source, UseGPU, Preload);
-        }
+            => new(Source!, UseGPU, Preload);
+
+        public AnimatableBitmapExtension() { }
 
         public AnimatableBitmapExtension(Uri source)
         {
             Source = source;
         }
 
+#if WINUI
+        protected override object? ProvideValue()
+        {
+            if (Source == null) return null;
+            return AnimatableBitmapFactory.Default.Create(ToOptions());
+        }
+#else
         public override object? ProvideValue(IServiceProvider serviceProvider)
         {
             if (Source == null)
@@ -89,5 +107,6 @@ namespace AnimationImage
 
             return null;
         }
+#endif
     }
 }

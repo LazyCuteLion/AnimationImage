@@ -1,4 +1,4 @@
-﻿<Window x:Class="AnimationImage.WPF.Demo.MainWindow"
+<Window x:Class="AnimationImage.WPF.Demo.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ani="https://github.com/LazyCuteLion/AnimationImage"
@@ -12,21 +12,6 @@
 
     <Grid local:RenderingHelper.ShowFPS="True" Background="Green">
         <Grid>
-            <!--  使用附加属性  -->
-            <!--
-            <Image ani:AnimationBehavior.AnimatableBitmap="[path]"/>
-            -->
-            <!--  附加到Brush  -->
-            <!--
-             <Rectangle Fill="{ani:AnimatableBitmap '[path]'}" />
-             <Border Background="{ani:AnimatableBitmap '[path]'}" />
-            -->
-            <!--  指定预加载帧数  -->
-            <!--
-            <Image Source="{ani:AnimatableBitmap 'D:\\Pictures\\evitare-loader.gif',PreloadCount={x:Static core:PreloadOptions.Disable}}"
-                   ani:AnimationBehavior.AutoStart="True"/>
-            -->
-
             <Image x:Name="img"
                    ani:AnimatableBitmap.AutoStart="True"
                    ani:AnimatableBitmap.ForceFPS="144"
@@ -118,7 +103,8 @@
                               Margin="10,0,0,0"
                               VerticalAlignment="Center"
                               Content="显卡加速"
-                              Foreground="White" />
+                              Foreground="White" 
+                              IsChecked="True"/>
                     <CheckBox x:Name="cbPreload"
                               Margin="10,0,0,0"
                               VerticalAlignment="Center"

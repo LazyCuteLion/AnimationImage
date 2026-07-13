@@ -35,15 +35,12 @@ namespace AnimationImage
         private CancellationTokenSource? _renderToken;
         /// <summary>后台预解码任务句柄；Dispose 时需等待其退出后再释放 <see cref="_frameCache"/>，以防写入已释放的 MMF。</summary>
         private Task? _loadTask;
-        private readonly AnimatableBitmapOptions _options;
         #endregion
 
         public ApngBitmap(AnimatableBitmapOptions options) : base(options)
         {
-            _options = options;
-
             // 快速指纹：仅读取首尾 64KB + 文件大小生成缓存键，耍时 <5ms（而非全文件 MD5 的 ~2s）。
-            var fingerprint = _options.Preload ? _stream.FastFingerprint() : null;
+            var fingerprint = options.Preload ? _stream.FastFingerprint() : null;
 
             _codec = ApngCodec.Create(_stream);
             if (_codec == null)
@@ -68,7 +65,7 @@ namespace AnimationImage
             double duration = 0.0;
             for (int i = 0; i < _codec.FrameCount; i++)
             {
-                duration += _codec.Frames[i].DurationMs;
+                duration += _codec.Frames[i].Duration;
                 _durations.Add(duration);
             }
 
@@ -77,13 +74,13 @@ namespace AnimationImage
                 _codec.Height,
                 duration,
                 _codec.FrameCount,
-                duration > 0 ? (int)(_codec.FrameCount * 1000 / duration) : 0,
+                duration > 0 ? (int)Math.Round(_codec.FrameCount * 1000.0 / duration) : 0,
                 _codec.RepetitionCount);
 
             _decodeInfo = CreateDecodeInfo(_codec.Width, _codec.Height);
             Frame = CreateNewFrame(_decodeInfo.Width, _decodeInfo.Height);
 
-            if (_options.Preload)
+            if (options.Preload)
             {
                 try
                 {
@@ -98,8 +95,9 @@ namespace AnimationImage
             if (_frameCache != null)
             {
                 LoadAsync();
-                // 等待首帧就绪，避免首屏空白
-                while (_frameCache.LoadedCount < 1)
+                // 等待首帧就绪，避免首屏空白；限制最多 200 次（~2s）防止死循环
+                var maxWait = 200;
+                while (_frameCache.LoadedCount < 1 && --maxWait > 0)
                 {
                     Thread.Sleep(10);
                 }
@@ -190,23 +188,21 @@ namespace AnimationImage
 #endif
             try
             {
-                var success = false;
-
                 if (_frameCache != null)
                 {
                     _renderToken?.Cancel();
 
                     // 阶段1：无锁等待缓存就绪（超时使用本帧显示时长的 80%）
-                    if (!_frameCache.Contains(index))
+                    if (!_frameCache!.Contains(index))
                     {
-                        var time = _codec!.Frames[index].DurationMs * 0.8;
+                        var time = _codec!.Frames[index].Duration * 0.8;
                         _renderToken = new CancellationTokenSource(TimeSpan.FromMilliseconds(time));
                         while (!_renderToken.IsCancellationRequested)
                         {
                             try
                             {
                                 await Task.Delay(5, _renderToken.Token);
-                                if (_frameCache.Contains(index)) break;
+                                if (_frameCache!.Contains(index)) break;
                             }
                             catch (OperationCanceledException) { break; }
                         }
@@ -214,8 +210,7 @@ namespace AnimationImage
 
                     // 阶段2：锁定并拷贝
                     using var b = Frame.LockScope();
-                    success = _frameCache.TryGet(index, b.Address);
-                    if (success)
+                    if (_frameCache!.TryGet(index, b.Address))
                     {
                         b.Update(_decodeInfo.Rect);
                         _currentIndex = index;
@@ -224,9 +219,7 @@ namespace AnimationImage
                 else
                 {
                     using var b = Frame.LockScope();
-                    success = _codec != null
-                        && _codec.GetPixels(index, _decodeInfo, b.Address) == SKCodecResult.Success;
-                    if (success)
+                    if (_codec!.GetPixels(index, _decodeInfo, b.Address) == SKCodecResult.Success)
                     {
                         b.Update(_decodeInfo.Rect);
                         _currentIndex = index;
@@ -246,35 +239,8 @@ namespace AnimationImage
             }
         }
 
-        /// <summary>将时间（毫秒）映射为帧索引（局部相邻判断 + 二分查找兜底）。</summary>
         private int TimeToIndex(double milliseconds)
-        {
-            if (milliseconds == 0 || _durations.Count <= 1)
-                return 0;
-
-            var index = _currentIndex > -1 ? _currentIndex : 0;
-            if (index >= _durations.Count)
-                index %= _durations.Count;
-
-            if (milliseconds < _durations[index])
-            {
-                if (index == 0) return 0;
-                if (index > 0 && milliseconds >= _durations[index - 1]) return index;
-                if (index > 1 && milliseconds >= _durations[index - 2] && milliseconds < _durations[index - 1])
-                    return index - 1;
-            }
-            else if (index < _durations.Count - 1 && milliseconds < _durations[index + 1])
-            {
-                return index + 1;
-            }
-
-            index = _durations.BinarySearch(milliseconds);
-            if (index < 0) index = ~index;
-            else index++;
-
-            if (index >= _durations.Count) index = 0;
-            return index;
-        }
+            => FrameTimeHelper.TimeToIndex(milliseconds, _durations, _currentIndex);
 
         /// <summary>后台顺序解码所有帧，把合成后的完整画布写入 <see cref="MMFFrameCache"/>。</summary>
         private void LoadAsync()

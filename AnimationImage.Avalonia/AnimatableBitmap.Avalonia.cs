@@ -177,7 +177,8 @@ namespace AnimationImage
             if (!IsAnimatable
                 || State == AnimationState.Playing
                 || State == AnimationState.Error
-                || _animationToken != null)
+                || _animationToken != null
+                || Metadata.Duration <= 0)
                 return;
 
             try
@@ -242,13 +243,6 @@ namespace AnimationImage
             _waitForResume = false;
             UpdateCommandState();
             SetAnimationTime(Target, 0.0);
-        }
-
-        protected void UpdateCommandState()
-        {
-            (BeginCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (PauseCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (StopCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         internal static WriteableBitmap CreateNewFrame(int width, int height)
@@ -326,10 +320,6 @@ namespace AnimationImage
                 if (e.NewValue is AnimatableBitmap b)
                     b.AttachTarget(s);
             });
-
-#if DEBUG
-            EnableTPS = true;
-#endif
         }
 
         #endregion

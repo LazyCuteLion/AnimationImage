@@ -1,0 +1,68 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>AnimationImage.WinUI</RootNamespace>
+    <DefineConstants>WINUI</DefineConstants>
+    <Nullable>enable</Nullable>
+    <UseWinUI>true</UseWinUI>
+    <WinUISDKReferences>false</WinUISDKReferences>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EmitCompilerGeneratedFiles>false</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>AnimationImage.WinUI</PackageId>
+    <Version>3.0.0</Version>
+    <Authors>LazySheeeep</Authors>
+    <Description>
+      基于 SkiaSharp + D3D12 的 WinUI 极简动图播放方案。
+      支持播放 Lottie、GIF、WebP、APNG 格式。
+      更高的帧率、更佳的性能、更少的内存占用。
+    </Description>
+    <PackageTags>winui;skiasharp;lottie;gif;webp;apng;animation;d3d12;gpu</PackageTags>
+    <RepositoryUrl>https://github.com/LazyCuteLion/AnimationImage</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>nuget.readme.winui.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="nuget.readme.winui.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2270" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Graphics.Win2D" Version="1.3.2" />
+    <PackageReference Include="SkiaSharp" Version="3.119.2" />
+    <PackageReference Include="SkiaSharp.Skottie" Version="3.119.2" />
+    <PackageReference Include="SkiaSharp.Views.WinUI" Version="3.119.2" />
+    <PackageReference Include="Silk.NET.Direct3D12" Version="2.22.0" />
+    <PackageReference Include="Silk.NET.DXGI" Version="2.22.0" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.106">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="NativeMethods.txt" />
+    <AdditionalFiles Include="NativeMethods.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\AnimationImage.WPF\Share\Apng\ApngChunkReader.cs" Link="Apng\ApngChunkReader.cs" />
+    <Compile Include="..\AnimationImage.WPF\Share\Apng\ApngCodec.cs" Link="Apng\ApngCodec.cs" />
+    <Compile Include="..\AnimationImage.WPF\Share\Apng\ApngCompositor.cs" Link="Apng\ApngCompositor.cs" />
+    <Compile Include="..\AnimationImage.WPF\Share\Apng\ApngFrameAssembler.cs" Link="Apng\ApngFrameAssembler.cs" />
+    <Compile Include="..\AnimationImage.WPF\Share\RelayCommand.cs" Link="Share\RelayCommand.cs" />
+    <Compile Include="..\AnimationImage.WPF\Share\MMFFrameCache.cs" Link="Share\MMFFrameCache.cs" />
+    <Compile Include="..\AnimationImage.WPF\Share\FrameTimeHelper.cs" Link="Share\FrameTimeHelper.cs" />
+    <Compile Include="..\AnimationImage.WPF\Share\StreamFingerprintExtension.cs" Link="Share\StreamFingerprintExtension.cs" />
+    <Compile Include="..\AnimationImage.WPF\Share\Metadata.cs" Link="Share\Metadata.cs" />
+    <Compile Include="..\AnimationImage.WPF\Share\AnimationState.cs" Link="Share\AnimationState.cs" />
+    <Compile Include="..\AnimationImage.WPF\Share\AnimatableBitmapOptions.cs" Link="Share\AnimatableBitmapOptions.cs" />
+    <Compile Include="..\AnimationImage.WPF\Share\AnimatableBitmapFactory.cs" Link="Share\AnimatableBitmapFactory.cs" />
+    <Compile Include="..\AnimationImage.WPF\Share\AnimatableBitmapConverter.cs" Link="Share\AnimatableBitmapConverter.cs" />
+    <Compile Include="..\AnimationImage.WPF\Share\AnimatableBitmapExtension.cs" Link="Share\AnimatableBitmapExtension.cs" />
+    <Compile Include="..\AnimationImage.WPF\Share\AnimatableBitmap.cs" Link="Share\AnimatableBitmap.cs" />
+  </ItemGroup>
+</Project>

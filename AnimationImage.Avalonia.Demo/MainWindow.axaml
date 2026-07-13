@@ -1,4 +1,4 @@
-﻿<Window x:Class="AnimationImage.Avalonia.Demo.MainWindow"
+<Window x:Class="AnimationImage.Avalonia.Demo.MainWindow"
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ani="https://github.com/LazyCuteLion/AnimationImage"
@@ -16,12 +16,6 @@
                ani:AnimatableBitmap.RepeatBehavior="Forever"
                RenderOptions.BitmapInterpolationMode="HighQuality"
                Stretch="Uniform"/>
-
-        <!--
-        <Rectangle ani:AnimatableBitmap.AutoStart="True"
-        ani:AnimatableBitmap.RepeatBehavior="Forever"
-        Fill="{ani:AnimatableBitmap 'D:\\Pictures\\loader.gif'}"/>
-        -->
 
         <TextBlock Margin="10,20"
                    Padding="5"
@@ -83,7 +77,8 @@
                 <CheckBox x:Name="cbUseGPU"
                           Margin="10,0,0,0"
                           VerticalAlignment="Center"
-                          Content="显卡加速" />
+                          Content="显卡加速" 
+                          IsChecked="True"/>
                 <CheckBox x:Name="cbPreload"
                           Margin="10,0,0,0"
                           VerticalAlignment="Center"
