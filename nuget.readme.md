@@ -1,4 +1,4 @@
-﻿# AnimationImage
+# AnimationImage
 
 > **基于 SkiaSharp 的 WPF & AvaloniaUI 极简动图播放方案**
 
@@ -67,6 +67,10 @@ public partial class App : Application
 ```
 
 ## ✈️更新日志
+
+v3.0.0  
+🚨 依赖变更：`Vortice` → `Silk.NET`。  
+🧨 新增功能：抽象 `IGpuBackend`，实现跨平台 GPU 加速。  
 
 v2.1.0  
 🚨 破坏性变更：移除 `AnimationBehavior`，附加属性统一迁移到 `AnimatableBitmap`。  
