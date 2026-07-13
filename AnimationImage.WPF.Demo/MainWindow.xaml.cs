@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualBasic;
+using Microsoft.VisualBasic;
 using Microsoft.Win32;
 using SkiaSharp;
 using System.Diagnostics;
@@ -16,6 +16,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Shell;
 using System.Windows.Threading;
 
 namespace AnimationImage.WPF.Demo
@@ -32,15 +33,15 @@ namespace AnimationImage.WPF.Demo
             var dialog = new OpenFileDialog();
             if (dialog.ShowDialog() == true)
             {
+                Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} Open File：{dialog.FileName}");
                 var options = new AnimatableBitmapOptions(dialog.FileName,
                                                           useGPU: cbUseGPU.IsChecked ?? false,
                                                           preload: cbPreload.IsChecked ?? false);
-
                 var s = AnimatableBitmapFactory.Default.Create(options);
                 AnimatableBitmap.SetSource(img, s);
 
                 //var s2 = AnimatableBitmapFactory.Default.Create(options);
-                //AnimationBehavior.SetAnimatableBitmap(img2, s2);
+                //AnimatableBitmap.SetSource(img2, s2);
             }
         }
     }

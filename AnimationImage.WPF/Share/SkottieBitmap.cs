@@ -99,7 +99,7 @@ namespace AnimationImage
                     _gpu.Dispose();
                     _gpu = null;
                 }
-                Debug.WriteLine($"设置大小：{_info.Size}");
+                Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} 设置大小：{_info.Size}");
             }
         }
 
@@ -141,14 +141,14 @@ namespace AnimationImage
             }
             catch (Exception e)
             {
-                Debug.WriteLine($"Lottie渲染错误：{e.Message}");
+                Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} Lottie渲染错误：{e.Message}");
             }
             finally
             {
                 base.SeekTime(milliseconds);
 #if DEBUG
                 st.Stop();
-                Debug.WriteLine($"渲染耗时：{st.ElapsedMilliseconds}");
+                Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} 渲染耗时：{st.ElapsedMilliseconds}");
 #endif
             }
         }

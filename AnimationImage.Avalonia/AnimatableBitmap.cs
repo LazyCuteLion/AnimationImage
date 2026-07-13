@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Data;
@@ -53,7 +53,8 @@ namespace AnimationImage
             {
                 img.Bind(Image.SourceProperty, new Binding(nameof(Frame)) { Source = this });
             }
-            await Target.WaitForLoadedAsync();
+            if (!Target.IsLoaded)
+                await Target.WaitForLoadedAsync();
             Target.PropertyChanged += Target_PropertyChanged;
             Target.DetachedFromVisualTree += Target_DetachedFromVisualTree;
             if (TopLevel.GetTopLevel(Target) is Window win)
@@ -76,20 +77,9 @@ namespace AnimationImage
         private void Target_PropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
         {
             if (Target == null || _disposed) return;
-            if (e.Property == FrameworkElement.IsVisibleProperty)
-            {
-                if (e.NewValue?.Equals(false) == true && State == AnimationState.Playing)
-                {
-                    PauseAnimation();
-                    _waitForResume = true;
-                }
-                else if (_waitForResume)
-                {
-                    _waitForResume = false;
-                    BeginAnimation();
-                }
-            }
-            else if (e.Property == Window.WindowStateProperty)
+            // 控件自身及祖先可见性变化交给 Animation.PlaybackBehavior.OnlyIfVisible 处理，
+            // 这里只处理窗口最小化这种不会传递到 IsEffectivelyVisible 的场景
+            if (e.Property == Window.WindowStateProperty)
             {
                 if (e.NewValue is WindowState state)
                 {
@@ -109,23 +99,18 @@ namespace AnimationImage
 
         private Animation _animation;
         private CancellationTokenSource _animationToken;
+        private RepeatBehavior _animationRepeat;
 
-        private IterationCount ToIterationCount(RepeatBehavior behavior)
-        {
-            if (behavior.IsForever) return IterationCount.Infinite;
-            return new IterationCount((ulong)behavior.Count);
-        }
 
         private void CreateAnimation()
         {
-            var repeatBehavior = GetRepeatBehavior(Target);
-            var loopCount = repeatBehavior != null
-                         ? ToIterationCount(repeatBehavior.Value)
-                         : (Metadata.LoopCount >= 0 ? new IterationCount((ulong)(Metadata.LoopCount + 1)) : IterationCount.Infinite);
+            _animationRepeat = GetRepeatBehavior(Target) ?? (Metadata.LoopCount >= 0 ? new RepeatBehavior(Metadata.LoopCount + 1) : RepeatBehavior.Forever);
             _animation = new Animation()
             {
                 Duration = TimeSpan.FromMilliseconds(Metadata.Duration),
-                IterationCount = loopCount,
+                // Animation.RunAsync 不允许 IterationCount.Infinite，会抛 InvalidOperationException 且造成 Apply 订阅泄漏
+                IterationCount = new IterationCount((ulong)(_animationRepeat.IsForever ? 1000 : _animationRepeat.Count)),
+                PlaybackBehavior = PlaybackBehavior.OnlyIfVisible,
             };
             if (CurrentTime > 0 && CurrentTime < Metadata.Duration)
             {
@@ -167,7 +152,7 @@ namespace AnimationImage
             }
             else
             {
-                CurrentTime = 0;
+                //CurrentTime = 0;
                 _animation.Children.Add(new KeyFrame
                 {
                     Cue = new Cue(0.0),
@@ -203,19 +188,28 @@ namespace AnimationImage
                 State = AnimationState.Playing;
                 UpdateCommandState();
                 CreateAnimation();
-                await _animation.RunAsync(Target, _animationToken.Token);
+                // Animation.RunAsync 不允许 IterationCount.Infinite，会抛 InvalidOperationException 且造成 Apply 订阅泄漏
+                if (_animationRepeat.IsForever)
+                {
+                    while (!_animationToken.IsCancellationRequested)
+                    {
+                        await _animation.RunAsync(Target, _animationToken.Token);
+                    }
+                }
+                else
+                {
+                    await _animation.RunAsync(Target, _animationToken.Token);
+                }
                 if (!_animationToken.IsCancellationRequested)
                 {
                     State = AnimationState.Completed; // 播放到自然结束
                     SetAnimationTime(Target, Metadata.Duration);
                 }
-                _animationToken.Dispose();
-                _animationToken = null;
             }
             catch (OperationCanceledException) { }
             catch (Exception e)
             {
-                Debug.WriteLine($"Avalonia动画播放异常：{e.Message}");
+                Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} Avalonia动画播放异常：{e.Message}");
             }
         }
 
@@ -323,7 +317,7 @@ namespace AnimationImage
             });
 #endif
 
-            SourceProperty.Changed.AddClassHandler<Control>(async (s, e) =>
+            SourceProperty.Changed.AddClassHandler<Control>((s, e) =>
             {
                 if (e.OldValue is AnimatableBitmap old)
                     old.Dispose();

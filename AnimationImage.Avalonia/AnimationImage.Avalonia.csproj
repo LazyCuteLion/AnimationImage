@@ -18,6 +18,9 @@
     <Compile Include="..\AnimationImage.WPF\Share\Gpu\*.cs">
       <Link>\Share\Gpu\%(Filename)%(Extension)</Link>
     </Compile>
+    <Compile Include="..\AnimationImage.WPF\Share\Apng\*.cs">
+      <Link>\Share\Apng\%(Filename)%(Extension)</Link>
+    </Compile>
   </ItemGroup>
  
   <ItemGroup>

@@ -59,7 +59,7 @@ namespace AnimationImage
                 {
                     if (_sdl.InitSubSystem(Sdl.InitVideo) != 0)
                     {
-                        Debug.WriteLine($"SDL InitSubSystem 失败：{_sdl.GetErrorS()}");
+                        Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} SDL InitSubSystem 失败：{_sdl.GetErrorS()}");
                         return false;
                     }
                     _videoInitedByUs = true;
@@ -82,20 +82,20 @@ namespace AnimationImage
 
                 if (_window == null)
                 {
-                    Debug.WriteLine($"SDL CreateWindow 失败：{_sdl.GetErrorS()}");
+                    Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} SDL CreateWindow 失败：{_sdl.GetErrorS()}");
                     return false;
                 }
 
                 _glContext = _sdl.GLCreateContext(_window);
                 if (_glContext == null)
                 {
-                    Debug.WriteLine($"SDL GLCreateContext 失败：{_sdl.GetErrorS()}");
+                    Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} SDL GLCreateContext 失败：{_sdl.GetErrorS()}");
                     return false;
                 }
 
                 if (_sdl.GLMakeCurrent(_window, _glContext) != 0)
                 {
-                    Debug.WriteLine($"SDL GLMakeCurrent 失败：{_sdl.GetErrorS()}");
+                    Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} SDL GLMakeCurrent 失败：{_sdl.GetErrorS()}");
                     return false;
                 }
 
@@ -118,7 +118,7 @@ namespace AnimationImage
             }
             catch (Exception e)
             {
-                Debug.WriteLine($"SDL GL GPU 初始化失败：{e.Message}");
+                Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} SDL GL GPU 初始化失败：{e.Message}");
                 DisposeInternal();
                 return false;
             }
@@ -134,7 +134,7 @@ namespace AnimationImage
             Surface = SKSurface.Create(Context, false, info);
             if (Surface == null)
             {
-                Debug.WriteLine("GPU Surface 重建失败（SDL/GL），释放 GPU 资源");
+                Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} GPU Surface 重建失败（SDL/GL），释放 GPU 资源");
                 DisposeInternal();
             }
         }

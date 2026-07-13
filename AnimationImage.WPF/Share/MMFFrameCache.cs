@@ -43,7 +43,7 @@ namespace AnimationImage
                 var name = $"{md5}_{count}_{frameSize}";
                 var totalSize = _headerSize + ((long)_frameCount * _frameSize);
                 TempPath = Path.Combine(TempDirectory, name + ".tmp");
-                Debug.WriteLine("MMFFrameCache：" + TempPath);
+                Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} MMFFrameCache：" + TempPath);
 
                 var exists = File.Exists(TempPath);
 

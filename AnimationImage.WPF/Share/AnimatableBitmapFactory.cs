@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -51,6 +51,8 @@ namespace AnimationImage
         private AnimatableBitmapFactory()
         {
             Register(".json", (options) => new SkottieBitmap(options));
+            Register(".png", (options) => new ApngBitmap(options));
+            Register(".apng", (options) => new ApngBitmap(options));
             RegisterDefault((options) => new SKCodecBitmap(options));
         }
 

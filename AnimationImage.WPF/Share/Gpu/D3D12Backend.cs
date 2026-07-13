@@ -80,7 +80,7 @@ namespace AnimationImage
             }
             catch (Exception e)
             {
-                Debug.WriteLine($"D3D12 GPU 初始化失败：{e.Message}");
+                Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} D3D12 GPU 初始化失败：{e.Message}");
                 DisposeInternal();
                 return false;
             }

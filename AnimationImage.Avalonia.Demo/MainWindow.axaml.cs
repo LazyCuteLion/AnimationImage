@@ -10,6 +10,7 @@ using Avalonia.Rendering;
 using Avalonia.Threading;
 using SkiaSharp;
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -38,6 +39,7 @@ namespace AnimationImage.Avalonia.Demo
             });
             if (file?.Count > 0)
             {
+                Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} Open File：{file[0].Path}");
                 var bitmap = AnimatableBitmapFactory.Default.Create(new AnimatableBitmapOptions(file[0].Path,
                                                                     useGPU: cbUseGPU.IsChecked ?? false,
                                                                     preload: cbPreload.IsChecked ?? false));

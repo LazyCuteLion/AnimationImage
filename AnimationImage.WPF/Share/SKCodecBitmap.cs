@@ -1,4 +1,4 @@
-﻿using System.Buffers;
+using System.Buffers;
 using System.Diagnostics;
 using System.IO;
 using System.IO.MemoryMappedFiles;
@@ -39,7 +39,7 @@ namespace AnimationImage
         public SKCodecBitmap(AnimatableBitmapOptions options) : base(options)
         {
             _options = options;
-            var md5 = _stream.MD5HexString();
+            var md5 = _options.Preload ? _stream.FastFingerprint() : null;
             _codec = SKCodec.Create(_stream);
             if (_codec == null)
             {
@@ -87,11 +87,11 @@ namespace AnimationImage
             {
                 try
                 {
-                    _frameCache = new MMFFrameCache(md5, _frameCount, _codec.Info.BytesSize);
+                    _frameCache = new MMFFrameCache(md5!, _frameCount, _codec.Info.BytesSize);
                 }
                 catch (Exception e)
                 {
-                    Debug.WriteLine($"{e.Message}将使用即时解码");
+                    Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} {e.Message}将使用即时解码");
                 }
             }
 
@@ -205,13 +205,13 @@ namespace AnimationImage
             }
             catch (Exception e)
             {
-                Debug.WriteLine($"SeekTime({index:000})错误：{e.Message}");
+                Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} SeekTime({index:000})错误：{e.Message}");
             }
             finally
             {
 #if DEBUG
                 st.Stop();
-                Debug.WriteLine($"SeekTime({index:000})耗时：{st.ElapsedMilliseconds}");
+                Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} SeekTime({index:000})耗时：{st.ElapsedMilliseconds}");
 #endif
             }
         }
@@ -271,7 +271,7 @@ namespace AnimationImage
 
             if (index == 0 || index < _currentIndex || requiredFrame == -1)
             {
-                Debug.WriteLineIf(index < _currentIndex, $"回退解码：{_currentIndex}->{index}");
+                Debug.WriteLineIf(index < _currentIndex, $"{DateTimeOffset.Now:HH:mm:ss.fff} 回退解码：{_currentIndex}->{index}");
                 var result = _codec.GetPixels(_codecInfo, address, new SKCodecOptions(index, -1) { ZeroInitialized = SKZeroInitialized.No });
                 if (result == SKCodecResult.Success)
                 {
@@ -293,7 +293,7 @@ namespace AnimationImage
             }
             else if (index - _currentIndex > 1)
             {
-                Debug.WriteLine($"跳帧解码：{_currentIndex}->{index}");
+                Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} 跳帧解码：{_currentIndex}->{index}");
                 // 若解码失败，且发生了跳帧，则尝试按顺序解码
                 var options = new SKCodecOptions();
                 for (int i = _currentIndex + 1; i <= index; i++)
@@ -365,7 +365,7 @@ namespace AnimationImage
                         }
                         else
                         {
-                            Debug.WriteLine($"Decode({i})失败");
+                            Debug.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} Decode({i})失败");
                         }
                     }
                 }
