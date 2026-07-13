@@ -2,10 +2,6 @@
 using SkiaSharp.Skottie;
 using System;
 using System.Diagnostics;
-using Vortice;
-using Vortice.Direct3D;
-using Vortice.Direct3D12;
-using Vortice.DXGI;
 
 #if WPF
 using System.Windows;
@@ -26,11 +22,7 @@ namespace AnimationImage
     {
         private Animation? _animation;
         private SKImageInfo _info;
-        private GRContext? _gpuContext;
-        private SKSurface? _gpuSurface;
-        private ID3D12Device? _d3dDevice;
-        private IDXGIAdapter1? _dxgiAdapter;
-        private ID3D12CommandQueue? _commandQueue;
+        private IGpuBackend? _gpu;
 
         public override bool IsAnimatable => base.IsAnimatable && _animation != null;
 
@@ -100,23 +92,12 @@ namespace AnimationImage
             if (_info.Width != width || _info.Height != height)
             {
                 _info = CreateDecodeInfo(width, height);
-                _gpuSurface?.Dispose();
-                _gpuSurface = null;
-                if (_gpuContext != null)
+                _gpu?.Resize(_info);
+                if (_gpu != null && _gpu.Surface == null)
                 {
-                    _gpuSurface = SKSurface.Create(_gpuContext, false, _info);
-                    if (_gpuSurface == null)
-                    {
-                        Debug.WriteLine("GPU Surface重建失败，释放GPU资源");
-                        _gpuContext?.Dispose();
-                        _gpuContext = null;
-                        _commandQueue?.Dispose();
-                        _commandQueue = null;
-                        _dxgiAdapter?.Dispose();
-                        _dxgiAdapter = null;
-                        _d3dDevice?.Dispose();
-                        _d3dDevice = null;
-                    }
+                    // 后端已在 Resize 内部自释放，这里同步引用
+                    _gpu.Dispose();
+                    _gpu = null;
                 }
                 Debug.WriteLine($"设置大小：{_info.Size}");
             }
@@ -138,14 +119,15 @@ namespace AnimationImage
                     ? CreateNewFrame(_info.Width, _info.Height)
                     : Frame;
 
-                if (_gpuSurface != null)
+                var gpuSurface = _gpu?.Surface;
+                if (gpuSurface != null)
                 {
-                    _gpuSurface.Canvas.Clear();
-                    _animation.Render(_gpuSurface.Canvas, _info.Rect);
-                    _gpuSurface.Flush();
+                    gpuSurface.Canvas.Clear();
+                    _animation.Render(gpuSurface.Canvas, _info.Rect);
+                    gpuSurface.Flush();
                     using var locker = frame.LockScope();
                     // 渲染后，需要把数据从GPU复制到CPU
-                    _gpuSurface.ReadPixels(_info, locker.Address, locker.RowBytes, 0, 0);
+                    gpuSurface.ReadPixels(_info, locker.Address, locker.RowBytes, 0, 0);
                 }
                 else
                 {
@@ -186,71 +168,26 @@ namespace AnimationImage
                 _animation?.Dispose();
                 _animation = null;
 
-                // 先释放 Skia GPU 资源，再释放 D3D12 底层资源
-                _gpuSurface?.Dispose();
-                _gpuSurface = null;
-
-                _gpuContext?.Dispose();
-                _gpuContext = null;
-
-                _commandQueue?.Dispose();
-                _commandQueue = null;
-                _dxgiAdapter?.Dispose();
-                _dxgiAdapter = null;
-                _d3dDevice?.Dispose();
-                _d3dDevice = null;
+                // GPU 后端负责按正确顺序释放 Skia GPU 资源与底层图形设备
+                _gpu?.Dispose();
+                _gpu = null;
             }
             base.Dispose(disposing);
         }
 
         private void TryUseGPU()
         {
-            try
+            var backend = GpuBackendFactory.Create();
+            if (backend == null)
+                return;
+
+            if (backend.TryInitialize(_info))
             {
-                if (D3D12.D3D12CreateDevice(null, FeatureLevel.Level_12_0, out ID3D12Device? device).Failure)
-                    return;
-
-                using var dxgiFactory = DXGI.CreateDXGIFactory1<IDXGIFactory4>();
-                if (dxgiFactory.EnumAdapterByLuid<IDXGIAdapter1>(Luid.FromInt64(device!.AdapterLuid), out var adapter).Failure)
-                {
-                    device?.Dispose();
-                    return;
-                }
-
-                var queueDesc = new CommandQueueDescription(CommandListType.Direct);
-                var commandQueue = device.CreateCommandQueue(queueDesc);
-
-                var backendContext = new GRD3DBackendContext()
-                {
-                    Device = device.NativePointer,
-                    Adapter = adapter!.NativePointer,
-                    Queue = commandQueue.NativePointer,
-                };
-
-                _gpuContext = GRContext.CreateDirect3D(backendContext);
-                _gpuSurface = SKSurface.Create(_gpuContext, false, _info);
-
-                if (_gpuSurface == null)
-                    throw new ArgumentNullException("gpu surface");
-
-                // 保持 D3D12 资源与 GRContext 同生命周期
-                _d3dDevice = device;
-                _dxgiAdapter = adapter;
-                _commandQueue = commandQueue;
+                _gpu = backend;
             }
-            catch (Exception e)
+            else
             {
-                Debug.WriteLine($"GPU加速初始化失败：{e.Message}");
-                _gpuSurface?.Dispose();
-                _gpuSurface = null;
-                _gpuContext?.Dispose();
-                _gpuContext = null;
-                _commandQueue?.Dispose();
-                _commandQueue = null;
-                _dxgiAdapter?.Dispose();
-                _dxgiAdapter = null;
-                _d3dDevice?.Dispose();
-                _d3dDevice = null;
+                backend.Dispose();
             }
         }
     }
