@@ -68,6 +68,10 @@ public partial class App : Application
 
 ## ✈️更新日志
 
+v3.1.0  
+🧨 新增功能：增加Apng支持。  
+✨ 优化修复：修复`Avalonia`的`Animation.RunAsync`问题。
+
 v3.0.0  
 🚨 依赖变更：`Vortice` → `Silk.NET`。  
 🧨 新增功能：抽象 `IGpuBackend`，实现跨平台 GPU 加速。  

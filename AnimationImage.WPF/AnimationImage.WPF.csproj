@@ -24,7 +24,7 @@
 
   <PropertyGroup>
     <PackageId>AnimationImage.WPF</PackageId>
-    <Version>3.0.0</Version>
+    <Version>3.1.0</Version>
     <Authors>LazySheeeep</Authors>
     <Description>
       基于 SkiaSharp 的 WPF 极简动图播放方案。
